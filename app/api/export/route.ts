@@ -19,7 +19,22 @@ export async function POST(request: NextRequest) {
     const workbook = new ExcelJS.Workbook()
     const worksheet = workbook.addWorksheet('导入数据')
 
-    // 获取映射后的字段名
+    // 创建字段名映射（英文→中文），用于导出表头
+    const fieldEnToCn: Record<string, string> = {
+      'external_code': '外部编码',
+      'sender_name': '发件人姓名',
+      'sender_phone': '发件人电话',
+      'sender_address': '发件人地址',
+      'receiver_name': '收件人姓名',
+      'receiver_phone': '收件人电话',
+      'receiver_address': '收件人地址',
+      'weight': '重量(kg)',
+      'quantity': '件数',
+      'temperature': '温层',
+      'remark': '备注',
+    }
+
+    // 获取映射后的字段名（英文）
     const systemFields: string[] = []
     for (const [, field] of Object.entries(mapping)) {
       if (field && field !== '不映射' && !systemFields.includes(String(field))) {
@@ -27,8 +42,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 转换为中文表头
+    const headerNames = systemFields.map((f) => fieldEnToCn[f] || f)
+
     // 添加表头
-    const headerRow = worksheet.addRow(systemFields)
+    const headerRow = worksheet.addRow(headerNames)
     headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } }
     headerRow.fill = {
       type: 'pattern',
