@@ -8,6 +8,7 @@ interface ColumnMappingProps {
   confidence?: number
   onContinue: () => void
   onReset: () => void
+  onPrevious?: () => void
 }
 
 const SYSTEM_FIELDS = [
@@ -33,6 +34,7 @@ export default function ColumnMapping({
   confidence,
   onContinue,
   onReset,
+  onPrevious,
 }: ColumnMappingProps) {
   const handleMappingChange = (header: string, field: string) => {
     const newMapping = { ...mapping }
@@ -120,6 +122,15 @@ export default function ColumnMapping({
 
       {/* 按钮组 */}
       <div style={{ marginTop: '20px', textAlign: 'right' }}>
+        {onPrevious && (
+          <button
+            className="btn btn-secondary"
+            onClick={onPrevious}
+            style={{ marginRight: '10px' }}
+          >
+            上一步
+          </button>
+        )}
         <button className="btn btn-secondary" onClick={onReset}>
           重置映射
         </button>

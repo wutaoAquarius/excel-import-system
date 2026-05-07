@@ -226,6 +226,24 @@ export default function ImportPage() {
     }
   }
 
+  // 返回上一步
+  const handlePreviousStep = () => {
+    setState((prev) => {
+      const newStep = Math.max(1, prev.currentStep - 1)
+      // 如果从步骤 3 返回到步骤 2，需要清除验证结果
+      if (prev.currentStep === 4 && newStep === 3) {
+        return {
+          ...prev,
+          currentStep: newStep,
+          errors: [],
+          validRows: [],
+          invalidRows: [],
+        }
+      }
+      return { ...prev, currentStep: newStep }
+    })
+  }
+
   // 重新开始
   const handleRestart = () => {
     setState({
@@ -303,6 +321,13 @@ export default function ImportPage() {
 
             <div style={{ marginTop: '20px', textAlign: 'right' }}>
               <button
+                className="btn btn-secondary"
+                onClick={handlePreviousStep}
+                style={{ marginRight: '10px' }}
+              >
+                上一步
+              </button>
+              <button
                 className="btn btn-primary"
                 onClick={() =>
                   setState((prev) => ({
@@ -327,6 +352,7 @@ export default function ImportPage() {
             confidence={state.confidence}
             onContinue={handleContinueToValidation}
             onReset={handleResetMapping}
+            onPrevious={handlePreviousStep}
           />
         )}
 
@@ -416,6 +442,13 @@ export default function ImportPage() {
                 </div>
 
                 <div style={{ marginTop: '20px', textAlign: 'right' }}>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={handlePreviousStep}
+                    style={{ marginRight: '10px' }}
+                  >
+                    上一步
+                  </button>
                   <button
                     className="btn btn-secondary"
                     onClick={handleBackToMapping}
