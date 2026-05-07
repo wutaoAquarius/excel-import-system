@@ -41,3 +41,10 @@ yarn-error.log*
 Thumbs.db
 
 .vercel
+
+# 敏感脚本和配置
+set-env.sh
+setup-vercel.ps1
+init-db-api.js
+*.key
+*.pem
