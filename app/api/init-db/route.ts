@@ -8,16 +8,43 @@ import bcrypt from 'bcryptjs'
  */
 export async function POST(_request: NextRequest) {
   try {
-    // 首先检查数据库连接
+    // 首先检查数据库连接和表结构
     try {
       await prisma.$queryRaw`SELECT 1`
       console.log('✓ 数据库连接成功')
+      
+      // 检查 "user" 表是否存在
+      const tableExists = await prisma.$queryRaw`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'User'
+        ) as exists
+      `
+      
+      if (!(tableExists as any)[0]?.exists) {
+        console.log('⚠️  表结构不存在，需要执行 prisma db push')
+        
+        // 因为我们无法在 Vercel 上执行 CLI 命令，所以返回错误
+        // 用户需要手动运行 prisma db push
+        return NextResponse.json(
+          { 
+            success: false, 
+            message: '数据库表结构不存在，需要手动初始化',
+            instructions: '请在本地运行: npx prisma db push',
+            details: '表结构需要通过 Prisma 迁移在数据库中创建'
+          },
+          { status: 409 }
+        )
+      }
+      
+      console.log('✓ 数据库表结构已就绪')
     } catch (connError) {
-      console.error('数据库连接失败:', connError)
+      console.error('数据库检查失败:', connError)
       return NextResponse.json(
         { 
           success: false, 
-          message: '数据库连接失败',
+          message: '数据库连接或查询失败',
           error: (connError as Error).message 
         },
         { status: 503 }

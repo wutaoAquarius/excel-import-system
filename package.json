@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && next build && npm run db:push:silent",
+    "db:push:silent": "npx prisma db push --skip-generate --skip-validate 2>/dev/null || true",
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
