@@ -6,12 +6,14 @@ import ProgressIndicator from '@/app/components/ProgressIndicator'
 import FileUpload from '@/app/components/FileUpload'
 import ColumnMapping from '@/app/components/ColumnMapping'
 import ErrorSummary, { ValidationError } from '@/app/components/ErrorSummary'
+import EditableDataTable from '@/app/components/EditableDataTable'
 
 interface ImportState {
   currentStep: number
   fileName: string
   headers: string[]
   rows: any[]
+  editedRows: any[] // 编辑后的行数据
   mapping: Record<string, string>
   fingerprint: string
   confidence: number
@@ -30,6 +32,7 @@ export default function ImportPage() {
     fileName: '',
     headers: [],
     rows: [],
+    editedRows: [],
     mapping: {},
     fingerprint: '',
     confidence: 0,
@@ -201,11 +204,14 @@ export default function ImportPage() {
     try {
       setState((prev) => ({ ...prev, isLoading: true }))
 
+      // 使用编辑后的行数据，如果有的话
+      const dataToExport = state.editedRows.length > 0 ? state.editedRows : state.rows
+
       const response = await fetch('/api/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          rows: state.validRows,
+          rows: dataToExport,
           errors: state.errors,
           headers: state.headers,
           mapping: state.mapping,
@@ -234,13 +240,50 @@ export default function ImportPage() {
     try {
       setState((prev) => ({ ...prev, isLoading: true, stepProgress: 20 }))
 
-      // 直接提交到数据库，不再进行二次校验
-      setState((prev) => ({ ...prev, stepProgress: 50 }))
+      // 使用编辑后的行数据，如果有的话
+      const dataToSubmit = state.editedRows.length > 0 ? state.editedRows : state.rows
+
+      // 如果数据被编辑过，需要重新校验
+      if (state.editedRows.length > 0) {
+        setState((prev) => ({ ...prev, stepProgress: 30 }))
+        const validateResponse = await fetch('/api/validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            rows: dataToSubmit,
+            mapping: state.mapping,
+            headers: state.headers,
+          }),
+        })
+
+        if (!validateResponse.ok) {
+          throw new Error('校验失败')
+        }
+
+        const validateResult = await validateResponse.json()
+
+        // 检查是否还有错误
+        if (validateResult.errors && validateResult.errors.length > 0) {
+          alert('编辑后的数据仍存在校验错误，请继续修正')
+          setState((prev) => ({
+            ...prev,
+            errors: validateResult.errors,
+            validRows: validateResult.validRows || [],
+            invalidRows: validateResult.invalidRows || [],
+            isLoading: false,
+            stepProgress: 0,
+          }))
+          return
+        }
+      }
+
+      // 直接提交到数据库
+      setState((prev) => ({ ...prev, stepProgress: 70 }))
       const submitResponse = await fetch('/api/imports/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          rows: state.validRows,
+          rows: dataToSubmit,
         }),
       })
 
@@ -291,6 +334,7 @@ export default function ImportPage() {
       fileName: '',
       headers: [],
       rows: [],
+      editedRows: [],
       mapping: {},
       fingerprint: '',
       confidence: 0,
@@ -505,71 +549,18 @@ export default function ImportPage() {
               <div className="card" style={{ marginTop: '20px' }}>
                 <h3>📋 校验后的数据预览</h3>
                 <p style={{ color: '#666', fontSize: '13px', marginBottom: '15px' }}>
-                  下表显示所有数据行。红色背景的单元格表示存在校验错误，请修正后重新上传或返回编辑映射
+                  下表显示所有数据行。点击单元格可进行编辑，按 Enter 保存或 Escape 取消。红色背景的单元格表示存在校验错误，请修正后重新上传或返回编辑映射。
                 </p>
 
-                <div
-                  className="table-wrapper"
-                  style={{ maxHeight: '500px', overflow: 'auto' }}
-                >
-                  <table>
-                    <thead>
-                      <tr>
-                        {state.headers.map((header) => (
-                          // 表头显示映射后的系统字段名
-                          // 新的 mapping 格式：系统字段 -> Excel列
-                          // 需要反向查找该 Excel 列对应的系统字段
-                          <th key={header}>
-                            {Object.entries(state.mapping).find(([_, col]) => col === header)?.[0] || header}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {/* 显示所有行（包括有效和无效），以便用户看到有错误的数据 */}
-                      {state.rows.slice(0, 50).map((row, idx) => {
-                        // 检查该行是否有错误
-                        const rowHasErrors = state.errors.some(e => e.rowIndex === idx + 1)
-                        
-                        return (
-                          <tr key={idx} style={{
-                            backgroundColor: rowHasErrors ? '#fee2e2' : undefined,
-                          }}>
-                            {state.headers.map((header) => {
-                              // 该 Excel 列对应的系统字段
-                              const systemField = Object.entries(state.mapping).find(
-                                ([_, col]) => col === header
-                              )?.[0]
-                              
-                              // 检查该单元格是否有错误
-                              const hasError = state.errors.some(
-                                (e) =>
-                                  e.rowIndex === idx + 1 &&
-                                  e.field === systemField
-                              )
-                              
-                              return (
-                                <td
-                                  key={`${idx}-${header}`}
-                                  style={{
-                                    backgroundColor: hasError ? '#fca5a5' : undefined,
-                                    color: hasError ? '#7f1d1d' : undefined,
-                                  }}
-                                >
-                                  {row[header] || '-'}
-                                </td>
-                              )
-                            })}
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div style={{ marginTop: '15px', color: '#666', fontSize: '12px' }}>
-                  显示前 50 行 (共 {state.rows.length} 行，其中 {state.validRows.length} 行有效，{state.invalidRows.length} 行有错误)
-                </div>
+                <EditableDataTable
+                  headers={state.headers}
+                  rows={state.editedRows.length > 0 ? state.editedRows : state.rows}
+                  mapping={state.mapping}
+                  errors={state.errors}
+                  onDataChange={(updatedRows) => {
+                    setState((prev) => ({ ...prev, editedRows: updatedRows }))
+                  }}
+                />
 
                 <div style={{ marginTop: '20px', textAlign: 'right' }}>
                   <button

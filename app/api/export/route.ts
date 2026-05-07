@@ -101,11 +101,18 @@ export async function POST(request: NextRequest) {
     // 导出 Excel 文件
     const buffer = await workbook.xlsx.writeBuffer()
 
+    // 处理文件名，支持中文字符
+    const timestamp = new Date().getTime()
+    const filename = `导入数据_${timestamp}.xlsx`
+    // 使用 RFC 5987 编码中文文件名
+    const encodedFilename = encodeURIComponent(filename)
+    const contentDisposition = `attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`
+
     return new NextResponse(buffer, {
       headers: {
         'Content-Type':
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="导入数据_${new Date().getTime()}.xlsx"`,
+        'Content-Disposition': contentDisposition,
       },
     })
   } catch (error) {
