@@ -71,7 +71,13 @@ export function validateRow(
   // 必填字段检查
   for (const field of VALIDATION_RULES.required.fields) {
     const value = mappedRow[field]
-    if (!value || String(value).trim() === '') {
+    // 检查是否缺失：null、undefined、空字符串、仅空格
+    const isMissing =
+      value === null ||
+      value === undefined ||
+      (typeof value === 'string' && value.trim() === '')
+    
+    if (isMissing) {
       errors.push({
         rowIndex: 0, // 会在调用处设置
         field,

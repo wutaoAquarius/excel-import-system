@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 
+// 标记此路由为动态，因为访问数据库
+export const dynamic = 'force-dynamic'
+
 /**
  * 初始化数据库
  * 创建默认用户和模板

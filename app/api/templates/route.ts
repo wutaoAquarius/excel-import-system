@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+// 标记此路由为动态，因为访问数据库
+export const dynamic = 'force-dynamic'
+
 /**
  * 获取所有导入模板
  */

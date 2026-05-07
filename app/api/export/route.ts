@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import ExcelJS from 'exceljs'
 
+// 标记此路由为动态，因为生成动态文件
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const { rows, errors, mapping } = await request.json()

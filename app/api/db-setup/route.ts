@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { execSync } from 'child_process'
 
+// 标记此路由为动态，因为需要执行数据库操作
+export const dynamic = 'force-dynamic'
+
 /**
  * 数据库 Schema 设置路由
  * 使用 Prisma db push 创建表结构
