@@ -19,6 +19,7 @@ interface ImportState {
   validRows: any[]
   invalidRows: any[]
   isLoading: boolean
+  stepProgress: number // 当前步骤进度 0-100
 }
 
 export default function ImportPage() {
@@ -34,6 +35,7 @@ export default function ImportPage() {
     validRows: [],
     invalidRows: [],
     isLoading: false,
+    stepProgress: 0,
   })
 
   // 步骤 1：文件上传
@@ -42,7 +44,7 @@ export default function ImportPage() {
     preview: { headers: string[]; rows: any[] }
   ) => {
     try {
-      setState((prev) => ({ ...prev, isLoading: true }))
+      setState((prev) => ({ ...prev, isLoading: true, stepProgress: 20 }))
 
       // 保存文件信息
       setState((prev) => ({
@@ -50,9 +52,11 @@ export default function ImportPage() {
         fileName: file.name,
         headers: preview.headers,
         rows: preview.rows,
+        stepProgress: 50,
       }))
 
       // 调用模板匹配 API
+      setState((prev) => ({ ...prev, stepProgress: 70 }))
       const response = await fetch('/api/template-match', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -70,9 +74,11 @@ export default function ImportPage() {
         fingerprint: result.fingerprint || '',
         confidence: result.confidence || 0,
         currentStep: 2,
+        stepProgress: 100,
       }))
     } catch (error) {
       alert('处理文件失败：' + (error instanceof Error ? error.message : '未知错误'))
+      setState((prev) => ({ ...prev, stepProgress: 0 }))
     } finally {
       setState((prev) => ({ ...prev, isLoading: false }))
     }
@@ -85,10 +91,11 @@ export default function ImportPage() {
 
   const handleContinueToValidation = async () => {
     try {
-      setState((prev) => ({ ...prev, isLoading: true }))
+      setState((prev) => ({ ...prev, isLoading: true, stepProgress: 20 }))
 
       // 保存映射规则到数据库
       if (state.fingerprint) {
+        setState((prev) => ({ ...prev, stepProgress: 40 }))
         await fetch('/api/mapping', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -102,6 +109,7 @@ export default function ImportPage() {
       }
 
       // 调用校验 API
+      setState((prev) => ({ ...prev, stepProgress: 60 }))
       const response = await fetch('/api/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -122,9 +130,11 @@ export default function ImportPage() {
         validRows: result.validRows || [],
         invalidRows: result.invalidRows || [],
         currentStep: 4,
+        stepProgress: 100,
       }))
     } catch (error) {
       alert('校验失败：' + (error instanceof Error ? error.message : '未知错误'))
+      setState((prev) => ({ ...prev, stepProgress: 0 }))
     } finally {
       setState((prev) => ({ ...prev, isLoading: false }))
     }
@@ -179,9 +189,10 @@ export default function ImportPage() {
   // 提交导入
   const handleSubmit = async () => {
     try {
-      setState((prev) => ({ ...prev, isLoading: true }))
+      setState((prev) => ({ ...prev, isLoading: true, stepProgress: 20 }))
 
       // 再次校验
+      setState((prev) => ({ ...prev, stepProgress: 40 }))
       const response = await fetch('/api/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -198,10 +209,12 @@ export default function ImportPage() {
 
       if (result.errors && result.errors.length > 0) {
         alert('仍存在校验错误，请修正后再提交')
+        setState((prev) => ({ ...prev, stepProgress: 0 }))
         return
       }
 
       // 提交到数据库
+      setState((prev) => ({ ...prev, stepProgress: 70 }))
       const submitResponse = await fetch('/api/imports/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -218,9 +231,11 @@ export default function ImportPage() {
       setState((prev) => ({
         ...prev,
         currentStep: 5,
+        stepProgress: 100,
       }))
     } catch (error) {
       alert('提交失败：' + (error instanceof Error ? error.message : '未知错误'))
+      setState((prev) => ({ ...prev, stepProgress: 0 }))
     } finally {
       setState((prev) => ({ ...prev, isLoading: false }))
     }
@@ -230,7 +245,7 @@ export default function ImportPage() {
   const handlePreviousStep = () => {
     setState((prev) => {
       const newStep = Math.max(1, prev.currentStep - 1)
-      // 如果从步骤 3 返回到步骤 2，需要清除验证结果
+      // 如果从步骤 4 返回到步骤 3，需要清除验证结果
       if (prev.currentStep === 4 && newStep === 3) {
         return {
           ...prev,
@@ -238,9 +253,10 @@ export default function ImportPage() {
           errors: [],
           validRows: [],
           invalidRows: [],
+          stepProgress: 0,
         }
       }
-      return { ...prev, currentStep: newStep }
+      return { ...prev, currentStep: newStep, stepProgress: 0 }
     })
   }
 
@@ -258,6 +274,7 @@ export default function ImportPage() {
       validRows: [],
       invalidRows: [],
       isLoading: false,
+      stepProgress: 0,
     })
   }
 
@@ -270,6 +287,26 @@ export default function ImportPage() {
 
       <div className="content-inner">
         <ProgressIndicator currentStep={state.currentStep} />
+        
+        {/* 当前步骤进度条 */}
+        {state.isLoading && state.stepProgress > 0 && (
+          <div style={{ marginTop: '20px', marginBottom: '20px' }}>
+            <div style={{ marginBottom: '8px', fontSize: '13px', color: '#666' }}>
+              步骤 {state.currentStep} 处理中... {state.stepProgress}%
+            </div>
+            <progress
+              value={state.stepProgress}
+              max="100"
+              style={{
+                width: '100%',
+                height: '8px',
+                borderRadius: '4px',
+                backgroundColor: '#e5e7eb',
+                appearance: 'none',
+              }}
+            />
+          </div>
+        )}
 
         {/* 步骤 1：上传文件 */}
         {state.currentStep === 1 && (
