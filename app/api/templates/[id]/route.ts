@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
  * 获取单个模板
  */
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -91,7 +91,7 @@ export async function PUT(
  * 删除模板
  */
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {

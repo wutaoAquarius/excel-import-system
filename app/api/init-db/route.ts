@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
 /**
  * 获取初始化状态
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const userCount = await prisma.user.count()
     const templateCount = await prisma.importTemplate.count()

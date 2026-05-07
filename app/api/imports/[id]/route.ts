@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
  * 获取单个导入记录详情
  */
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -80,7 +80,7 @@ export async function PATCH(
  * 删除导入记录
  */
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
