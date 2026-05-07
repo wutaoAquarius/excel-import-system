@@ -416,21 +416,30 @@ export default function ImportPage() {
                   条有效数据，可直接提交
                 </p>
 
-                <button
-                  className="btn btn-primary"
-                  onClick={handleSubmit}
-                  disabled={state.isLoading}
-                >
-                  {state.isLoading ? '提交中...' : '提交导入'}
-                </button>
-                <button
-                  className="btn btn-secondary"
-                  onClick={handleExport}
-                  style={{ marginLeft: '10px' }}
-                  disabled={state.isLoading}
-                >
-                  导出为 Excel
-                </button>
+                <div style={{ marginTop: '20px' }}>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={handlePreviousStep}
+                    style={{ marginRight: '10px' }}
+                  >
+                    上一步
+                  </button>
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleSubmit}
+                    disabled={state.isLoading}
+                  >
+                    {state.isLoading ? '提交中...' : '提交导入'}
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={handleExport}
+                    style={{ marginLeft: '10px' }}
+                    disabled={state.isLoading}
+                  >
+                    导出为 Excel
+                  </button>
+                </div>
               </div>
             )}
 

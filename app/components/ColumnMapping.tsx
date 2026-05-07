@@ -67,6 +67,14 @@ export default function ColumnMapping({
     {} as Record<string, string>
   )
 
+  // 检查是否有未映射的字段
+  const unmappedFields = headers.filter((header) => !mapping[header])
+  const hasUnmappedFields = unmappedFields.length > 0
+  
+  // 计算映射进度
+  const mappedCount = headers.length - unmappedFields.length
+  const mappingProgress = Math.round((mappedCount / headers.length) * 100)
+
   return (
     <div className="card">
       <h3>🔄 列名映射编辑</h3>
@@ -105,9 +113,56 @@ export default function ColumnMapping({
         </div>
       )}
 
-      <p style={{ color: '#666', fontSize: '13px', marginBottom: '15px', marginTop: '15px' }}>
-        请确认以下列的映射是否正确，可手动调整：
-      </p>
+      <div style={{ marginBottom: '15px', marginTop: '15px' }}>
+        <p style={{ color: '#666', fontSize: '13px', marginBottom: '10px' }}>
+          请确认以下列的映射是否正确，可手动调整：
+        </p>
+        
+        {/* 映射进度显示 */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          padding: '12px',
+          backgroundColor: '#f9fafb',
+          borderRadius: '6px',
+          border: '1px solid #e5e7eb',
+        }}>
+          <div style={{ flex: 1 }}>
+            <div style={{
+              fontSize: '12px',
+              color: '#666',
+              marginBottom: '6px',
+            }}>
+              映射进度：{mappedCount}/{headers.length} ({mappingProgress}%)
+            </div>
+            <progress
+              value={mappingProgress}
+              max="100"
+              style={{
+                width: '100%',
+                height: '6px',
+                borderRadius: '3px',
+                backgroundColor: '#e5e7eb',
+                appearance: 'none',
+              }}
+            />
+          </div>
+          {hasUnmappedFields && (
+            <div style={{
+              padding: '6px 12px',
+              backgroundColor: '#fee2e2',
+              color: '#dc2626',
+              borderRadius: '4px',
+              fontSize: '12px',
+              whiteSpace: 'nowrap',
+              fontWeight: '500',
+            }}>
+              ⚠️ {unmappedFields.length} 个未映射
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* 映射网格 */}
       <div
@@ -153,26 +208,44 @@ export default function ColumnMapping({
       </div>
 
       {/* 按钮组 */}
-      <div style={{ marginTop: '20px', textAlign: 'right' }}>
-        {onPrevious && (
-          <button
-            className="btn btn-secondary"
-            onClick={onPrevious}
-            style={{ marginRight: '10px' }}
-          >
-            上一步
-          </button>
+      <div style={{ marginTop: '20px' }}>
+        {hasUnmappedFields && (
+          <div style={{
+            padding: '12px',
+            backgroundColor: '#fef3c7',
+            border: '1px solid #fcd34d',
+            borderRadius: '6px',
+            color: '#92400e',
+            marginBottom: '15px',
+            fontSize: '13px',
+          }}>
+            ⚠️ 必须映射所有列。未映射的列：{unmappedFields.map((f) => `"${f}"`).join(', ')}
+          </div>
         )}
-        <button className="btn btn-secondary" onClick={onReset}>
-          重置映射
-        </button>
-        <button
-          className="btn btn-primary"
-          onClick={onContinue}
-          style={{ marginLeft: '10px' }}
-        >
-          继续验证数据
-        </button>
+        
+        <div style={{ textAlign: 'right' }}>
+          {onPrevious && (
+            <button
+              className="btn btn-secondary"
+              onClick={onPrevious}
+              style={{ marginRight: '10px' }}
+            >
+              上一步
+            </button>
+          )}
+          <button className="btn btn-secondary" onClick={onReset}>
+            重置映射
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={onContinue}
+            style={{ marginLeft: '10px' }}
+            disabled={hasUnmappedFields}
+            title={hasUnmappedFields ? '请先映射所有列' : '继续验证数据'}
+          >
+            继续验证数据
+          </button>
+        </div>
       </div>
     </div>
   )
