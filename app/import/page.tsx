@@ -194,9 +194,28 @@ export default function ImportPage() {
     }))
   }
 
+  // 重新上传文件
+  const handleReupload = () => {
+    setState((prev) => ({
+      ...prev,
+      currentStep: 1,
+      fileName: '',
+      headers: [],
+      rows: [],
+      editedRows: [],
+      mapping: {},
+      fingerprint: '',
+      confidence: 0,
+      errors: [],
+      validRows: [],
+      invalidRows: [],
+      stepProgress: 0,
+    }))
+  }
+
   // 返回到映射步骤
   const handleBackToMapping = () => {
-    setState((prev) => ({ ...prev, currentStep: 3 }))
+    setState((prev) => ({ ...prev, currentStep: 3, editedRows: [] }))
   }
 
   // 导出数据
@@ -565,6 +584,13 @@ export default function ImportPage() {
                 <div style={{ marginTop: '20px', textAlign: 'right' }}>
                   <button
                     className="btn btn-secondary"
+                    onClick={handleReupload}
+                    style={{ marginRight: '10px' }}
+                  >
+                    重新上传
+                  </button>
+                  <button
+                    className="btn btn-secondary"
                     onClick={handleBackToMapping}
                     style={{ marginRight: '10px' }}
                   >
@@ -573,10 +599,17 @@ export default function ImportPage() {
                   <button
                     className="btn btn-secondary"
                     onClick={handleExport}
-                    style={{ marginLeft: '10px' }}
+                    style={{ marginRight: '10px' }}
                     disabled={state.isLoading}
                   >
                     导出为 Excel
+                  </button>
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleSubmit}
+                    disabled={state.isLoading}
+                  >
+                    {state.isLoading ? '提交中...' : '提交导入'}
                   </button>
                 </div>
               </div>
