@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 /**
  * 获取所有导入模板
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const templates = await prisma.importTemplate.findMany({
       include: {
@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
  * 创建新模板
  */
 export async function POST(request: NextRequest) {
+  // 使用 request 获取请求体
   try {
     const body = await request.json()
     const { name, description, columns } = body

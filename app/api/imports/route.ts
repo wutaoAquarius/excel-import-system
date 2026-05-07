@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
  * 获取导入记录列表
  */
 export async function GET(request: NextRequest) {
+  // 使用 request 对象获取查询参数
   try {
     const searchParams = request.nextUrl.searchParams
     const page = parseInt(searchParams.get('page') || '1')
@@ -62,6 +63,7 @@ export async function GET(request: NextRequest) {
  * 创建新的导入记录
  */
 export async function POST(request: NextRequest) {
+  // 使用 request 对象获取请求体
   try {
     const body = await request.json()
     const { templateId, fileName, fileSize, mimeType } = body

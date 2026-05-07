@@ -6,7 +6,7 @@ import bcrypt from 'bcryptjs'
  * 初始化数据库
  * 创建默认用户和模板
  */
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     // 检查管理员用户是否已存在
     const adminExists = await prisma.user.findUnique({
