@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { execSync } from 'child_process'
-import path from 'path'
 
 /**
  * 数据库 Schema 设置路由
