@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import AppLayout from './components/AppLayout'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -14,9 +15,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body>
-        <main className="min-h-screen bg-gray-50">
-          {children}
-        </main>
+        <AppLayout>{children}</AppLayout>
       </body>
     </html>
   )

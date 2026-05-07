@@ -170,6 +170,62 @@ enum UserRole {
   USER
 }
 
+// 订单表 - 运单数据
+model Order {
+  id              String   @id @default(cuid())
+  external_code   String?  @unique @db.VarChar(255)
+  sender_name     String   @db.VarChar(255)
+  sender_phone    String   @db.VarChar(20)
+  sender_address  String   @db.Text
+  receiver_name   String   @db.VarChar(255)
+  receiver_phone  String   @db.VarChar(20)
+  receiver_address String  @db.Text
+  weight          Decimal  @db.Decimal(10, 2)
+  quantity        Int
+  temperature     String   @db.VarChar(50) // 常温、冷藏、冷冻
+  remark          String?  @db.Text
+  batch_number    String   @db.VarChar(255)
+  
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+  
+  @@index([external_code])
+  @@index([batch_number])
+  @@index([created_at])
+}
+
+// 导入批次表
+model ImportBatch {
+  id              String   @id @default(cuid())
+  batch_number    String   @unique @db.VarChar(255)
+  total_count     Int
+  success_count   Int      @default(0)
+  failed_count    Int      @default(0)
+  status          String   @db.VarChar(50) // success, failed, partial
+  error_details   String?  @db.Text
+  
+  created_at      DateTime @default(now())
+  completed_at    DateTime?
+  
+  @@index([batch_number])
+  @@index([created_at])
+}
+
+// 模板映射表 - 保存列映射规则
+model TemplateMapping {
+  id                   String   @id @default(cuid())
+  template_fingerprint String   @unique @db.VarChar(255)
+  mapping_rules        Json
+  header_names         Json
+  usage_count          Int      @default(0)
+  
+  created_at           DateTime @default(now())
+  last_used_at         DateTime @updatedAt
+  
+  @@index([template_fingerprint])
+  @@index([created_at])
+}
+
 // 系统日志
 model SystemLog {
   id        String   @id @default(cuid())

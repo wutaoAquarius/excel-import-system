@@ -1,0 +1,2168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>万能导入系统 - 完整演示</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f7fa;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        /* 顶部栏 */
+        .app-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            flex-shrink: 0;
+        }
+
+        .app-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .app-header p {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+
+        /* 主体容器 */
+        .app-main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* 左侧菜单栏 */
+        .sidebar {
+            width: 250px;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+            flex-shrink: 0;
+        }
+
+        .menu-section {
+            padding: 0;
+        }
+
+        .menu-section + .menu-section {
+            margin-top: 10px;
+            border-top: 1px solid #f0f0f0;
+            padding-top: 10px;
+        }
+
+        .menu-title {
+            padding: 15px 20px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .menu-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.3s;
+            color: #333;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .menu-item:hover {
+            background: #f5f5f5;
+            color: #667eea;
+        }
+
+        .menu-item.active {
+            background: #f0f0ff;
+            border-left-color: #667eea;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .menu-icon {
+            font-size: 16px;
+            min-width: 20px;
+        }
+
+        /* 内容区域 */
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #f5f7fa;
+        }
+
+        .content-inner {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+        }
+
+        .content-header {
+            padding: 20px 30px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            flex-shrink: 0;
+        }
+
+        .content-header h2 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .content-header p {
+            font-size: 13px;
+            color: #999;
+        }
+
+        /* 内容模块 */
+        .module {
+            display: none;
+        }
+
+        .module.active {
+            display: block;
+        }
+
+        /* 卡片样式 */
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .card h3 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        /* 上传区域 */
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f9f9ff;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f3f0ff;
+        }
+
+        .upload-area.drag-over {
+            border-color: #764ba2;
+            background: #ede9fe;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .upload-hint {
+            color: #999;
+            font-size: 14px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        /* 按钮 */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: inline-block;
+            margin: 5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        /* 表格 */
+        .table-wrapper {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: #f9f9f9;
+            font-weight: 600;
+            color: #333;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        /* 搜索栏 */
+        .search-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .search-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .search-item label {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .search-item input,
+        .search-item select {
+            padding: 8px 12px;
+            border: 1px solid #d0d0d0;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .search-item input:focus,
+        .search-item select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* 分页 */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            padding: 8px 12px;
+            border: 1px solid #d0d0d0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+
+        .pagination button:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .pagination button.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 统计信息 */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-card .number {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stat-card .label {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        /* 步骤指示 */
+        .steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .steps::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #e0e0e0;
+            z-index: 0;
+        }
+
+        .step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .step-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid #e0e0e0;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .step.active .step-circle {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: white;
+        }
+
+        .step.completed .step-circle {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
+        }
+
+        .step-label {
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        /* 响应式 */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 200px;
+            }
+
+            .content-inner {
+                padding: 20px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .app-main {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                max-height: 60px;
+                border-right: none;
+                border-bottom: 1px solid #e0e0e0;
+                flex-direction: row;
+                overflow-x: auto;
+            }
+
+            .menu-section {
+                display: flex;
+                padding: 10px 20px;
+            }
+
+            .menu-title {
+                display: none;
+            }
+
+            .menu-item {
+                white-space: nowrap;
+                padding: 10px 15px;
+            }
+        }
+
+        .text-muted {
+            color: #999;
+        }
+
+        .text-error {
+            color: #dc2626;
+        }
+
+        .text-success {
+            color: #10b981;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-warning {
+            background: #fef3c7;
+            color: #78350f;
+        }
+
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* 映射编辑样式 */
+        .mapping-item {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            transition: all 0.3s;
+        }
+
+        .mapping-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+        }
+
+        .mapping-item label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 13px;
+        }
+
+        .mapping-item .original-name {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 8px;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            border-left: 3px solid #667eea;
+        }
+
+        .mapping-item input,
+        .mapping-item select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #d0d0d0;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .mapping-item input:focus,
+        .mapping-item select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* 错误列表样式 */
+        .error-item {
+            padding: 12px;
+            background: #fee2e2;
+            border-left: 3px solid #dc2626;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .error-type-badge {
+            display: inline-block;
+            background: #dc2626;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .error-row {
+            color: #7f1d1d;
+            font-weight: 600;
+        }
+
+        .error-message {
+            color: #991b1b;
+            margin-top: 4px;
+        }
+
+        /* 表格编辑样式 */
+        table td {
+            position: relative;
+        }
+
+        table td.editable {
+            cursor: pointer;
+            background: #fffacd;
+        }
+
+        table td input.cell-edit {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #667eea;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        table td.error-cell {
+            background: #fee2e2 !important;
+        }
+
+        table td.error-cell::after {
+            content: '✗';
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #dc2626;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        /* 加载和进度样式 */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 确认对话框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background: white;
+            margin: auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-content h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .modal-content p {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .modal-buttons {
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 顶部栏 -->
+        <div class="app-header">
+            <h1>📊 万能导入系统</h1>
+            <p>支持多模板自动识别的Excel导入和运单管理系统</p>
+        </div>
+
+        <!-- 主体容器 -->
+        <div class="app-main">
+            <!-- 左侧菜单栏 -->
+            <div class="sidebar">
+                <div class="menu-section">
+                    <div class="menu-title">主菜单</div>
+                    <div class="menu-item active" onclick="switchModule('import')">
+                        <span class="menu-icon">📤</span>
+                        <span>批量导入</span>
+                    </div>
+                    <div class="menu-item" onclick="switchModule('query')">
+                        <span class="menu-icon">🔍</span>
+                        <span>运单查询</span>
+                    </div>
+                    <div class="menu-item" onclick="switchModule('templates')">
+                        <span class="menu-icon">📋</span>
+                        <span>模板管理</span>
+                    </div>
+                    <div class="menu-item" onclick="switchModule('history')">
+                        <span class="menu-icon">📑</span>
+                        <span>历史记录</span>
+                    </div>
+                </div>
+
+                <div class="menu-section">
+                    <div class="menu-title">帮助</div>
+                    <div class="menu-item" onclick="switchModule('guide')">
+                        <span class="menu-icon">❓</span>
+                        <span>使用指南</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 内容区域 -->
+            <div class="content">
+                <!-- 模块 1: 批量导入 -->
+                <div id="import-module" class="module active">
+                    <div class="content-header">
+                        <h2>📤 批量导入</h2>
+                        <p>上传Excel文件，系统将自动识别列名并进行数据校验</p>
+                    </div>
+                    <div class="content-inner">
+                        <!-- 步骤指示 -->
+                        <div class="steps">
+                            <div class="step active">
+                                <div class="step-circle">1</div>
+                                <div class="step-label">上传文件</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-circle">2</div>
+                                <div class="step-label">自动识别</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-circle">3</div>
+                                <div class="step-label">映射编辑</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-circle">4</div>
+                                <div class="step-label">数据校验</div>
+                            </div>
+                            <div class="step">
+                                <div class="step-circle">5</div>
+                                <div class="step-label">完成导入</div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h3>选择导入模板</h3>
+                            <div style="margin-bottom: 20px;">
+                                <select id="templateSelect" onchange="loadTemplate()" style="width: 100%; padding: 10px; border: 1px solid #d0d0d0; border-radius: 6px; font-size: 14px;">
+                                    <option value="">-- 选择模板或上传文件 --</option>
+                                    <option value="template-a">模板 A - 标准中文列名</option>
+                                    <option value="template-b">模板 B - 混合列名（列序调整）</option>
+                                    <option value="template-c">模板 C - 英文列名</option>
+                                    <option value="template-d">模板 D - 地址拆分（省市区）</option>
+                                    <option value="template-e">模板 E - 缺少选填字段</option>
+                                </select>
+                            </div>
+
+                            <div class="upload-area" id="uploadArea">
+                                <div class="upload-icon">📁</div>
+                                <div class="upload-text">点击选择或拖拽 Excel 文件</div>
+                                <div class="upload-hint">支持 .xlsx 和 .xls 格式，最大 10MB</div>
+                                <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="handleFileSelect(event)">
+                            </div>
+
+                            <div style="margin-top: 15px;">
+                                <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">选择文件</button>
+                                <button class="btn btn-secondary" onclick="loadSampleData()">加载示例数据</button>
+                            </div>
+                        </div>
+
+                        <!-- 文件信息 -->
+                        <div id="fileInfo" class="card" style="display: none;">
+                            <h3>📄 文件信息</h3>
+                            <table>
+                                <tr>
+                                    <td style="border: none; padding: 8px 0;">文件名</td>
+                                    <td style="border: none; padding: 8px 0;"><strong id="fileName">-</strong></td>
+                                </tr>
+                                <tr>
+                                    <td style="border: none; padding: 8px 0;">行数</td>
+                                    <td style="border: none; padding: 8px 0;"><strong id="rowCount">-</strong></td>
+                                </tr>
+                                <tr>
+                                    <td style="border: none; padding: 8px 0;">列数</td>
+                                    <td style="border: none; padding: 8px 0;"><strong id="colCount">-</strong></td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <!-- 原始数据预览 -->
+                        <div id="rawDataSection" class="card" style="display: none;">
+                            <h3>📊 原始数据预览（前 5 行）</h3>
+                            <div class="table-wrapper">
+                                <table id="rawDataTable">
+                                    <thead></thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- 列名识别结果 -->
+                        <div id="matchingSection" class="card" style="display: none;">
+                            <h3>🎯 列名自动识别结果</h3>
+                            <div style="margin-top: 15px; padding: 15px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #0284c7;">
+                                <p style="margin: 8px 0; color: #0c4a6e;">
+                                    <strong>模板指纹：</strong> <code style="background: white; padding: 4px 8px; border-radius: 4px;" id="fingerprint">-</code>
+                                </p>
+                                <p style="margin: 8px 0; color: #0c4a6e;">
+                                    <strong>识别准确度：</strong> <span id="confidence" style="font-size: 18px; font-weight: 700; color: #0284c7;">-</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- 列映射编辑 -->
+                        <div id="mappingSection" class="card" style="display: none;">
+                            <h3>🔄 列名映射编辑</h3>
+                            <p style="color: #666; font-size: 13px; margin-bottom: 15px;">请确认以下列的映射是否正确，可手动调整：</p>
+                            <div id="mappingGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;"></div>
+                            <div style="margin-top: 20px; text-align: right;">
+                                <button class="btn btn-secondary" onclick="resetMapping()">重置映射</button>
+                                <button class="btn btn-primary" onclick="proceedToValidation()" style="margin-left: 10px;">继续验证数据</button>
+                            </div>
+                        </div>
+
+                        <!-- 校验结果 -->
+                        <div id="validationSection" class="card" style="display: none;">
+                            <h3>✅ 数据校验结果</h3>
+                            <div class="stats">
+                                <div class="stat-card">
+                                    <div class="number" id="validCount">0</div>
+                                    <div class="label">有效行</div>
+                                </div>
+                                <div class="stat-card" style="background: linear-gradient(135deg, #f97316 0%, #d4580b 100%);">
+                                    <div class="number" id="errorCount">0</div>
+                                    <div class="label">错误行</div>
+                                </div>
+                                <div class="stat-card" style="background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);">
+                                    <div class="number" id="errorTypes">0</div>
+                                    <div class="label">错误类型</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 错误详情 -->
+                        <div id="errorDetailsSection" class="card" style="display: none;">
+                            <h3>⚠️ 数据校验错误详情</h3>
+                            <div style="max-height: 300px; overflow-y: auto;">
+                                <div id="errorDetailsList"></div>
+                            </div>
+                            <div style="margin-top: 15px; text-align: right;">
+                                <button class="btn btn-secondary" onclick="toggleErrorDetails()" id="toggleErrorBtn">显示所有错误</button>
+                            </div>
+                        </div>
+
+                        <!-- 修正后的数据 -->
+                        <div id="correctedDataSection" class="card" style="display: none;">
+                            <h3>📋 修正后的数据预览（可在线编辑）</h3>
+                            <p style="color: #666; font-size: 13px; margin-bottom: 15px;">点击单元格可编辑数据，Tab 键移动到下一个单元格，Esc 取消编辑</p>
+                            <div class="table-wrapper" style="max-height: 400px; overflow: auto;">
+                                <table id="correctedDataTable" style="position: relative;">
+                                    <thead style="position: sticky; top: 0; z-index: 10;"></thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- 完成导入 -->
+                        <div id="completeSection" class="card" style="display: none;">
+                            <div style="text-align: center; padding: 40px 20px;">
+                                <p style="font-size: 48px; margin-bottom: 15px;">✨</p>
+                                <h3 style="color: #10b981; margin-bottom: 10px;">导入完成</h3>
+                                <p style="color: #666; margin-bottom: 20px;">
+                                    成功导入 <strong id="successCount" style="color: #10b981; font-size: 18px;">0</strong> 条有效数据
+                                </p>
+                                <div>
+                                    <button class="btn btn-primary" onclick="exportData()">导出为 Excel</button>
+                                    <button class="btn btn-secondary" onclick="resetImport()" style="margin-left: 10px;">重新导入</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 模块 2: 运单查询 -->
+                <div id="query-module" class="module">
+                    <div class="content-header">
+                        <h2>🔍 运单查询</h2>
+                        <p>按条件搜索和查看运单详情</p>
+                    </div>
+                    <div class="content-inner">
+                        <div class="card">
+                            <h3>快速查询</h3>
+                            <div class="search-bar">
+                                <div class="search-item">
+                                    <label>外部编码</label>
+                                    <input type="text" id="queryCode" placeholder="输入外部编码">
+                                </div>
+                                <div class="search-item">
+                                    <label>收件人姓名</label>
+                                    <input type="text" id="queryName" placeholder="输入收件人姓名">
+                                </div>
+                                <div class="search-item">
+                                    <label>温层</label>
+                                    <select id="queryTemperature">
+                                        <option value="">-- 全部 --</option>
+                                        <option value="常温">常温</option>
+                                        <option value="冷藏">冷藏</option>
+                                        <option value="冷冻">冷冻</option>
+                                    </select>
+                                </div>
+                                <div class="search-item" style="align-self: flex-end;">
+                                    <button class="btn btn-primary" onclick="performQuery()">查询</button>
+                                    <button class="btn btn-secondary" onclick="resetQuery()">重置</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="queryResults" class="card" style="display: none;">
+                            <h3>查询结果</h3>
+                            <div style="margin-bottom: 15px; padding: 10px; background: #f0f9ff; border-radius: 6px; border-left: 3px solid #0284c7;">
+                                <p style="color: #0c4a6e; font-size: 13px;">
+                                    找到 <strong id="resultCount">0</strong> 条记录
+                                </p>
+                            </div>
+                            <div class="table-wrapper">
+                                <table id="queryTable">
+                                    <thead>
+                                        <tr>
+                                            <th>外部编码</th>
+                                            <th>收件人</th>
+                                            <th>发件人</th>
+                                            <th>重量(kg)</th>
+                                            <th>温层</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div id="noResults" class="card" style="display: none; text-align: center; padding: 60px 20px;">
+                            <p style="font-size: 48px; margin-bottom: 15px;">🔍</p>
+                            <p style="color: #999;">暂无查询结果</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 模块 3: 模板管理 -->
+                <div id="templates-module" class="module">
+                    <div class="content-header">
+                        <h2>📋 模板管理</h2>
+                        <p>查看和管理已保存的导入模板</p>
+                    </div>
+                    <div class="content-inner">
+                        <div class="card">
+                            <h3>5 个标准测试模板</h3>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                                <div style="background: #f0f9ff; padding: 15px; border-radius: 8px; border-left: 4px solid #0284c7;">
+                                    <h4 style="color: #0c4a6e; margin-bottom: 8px;">模板 A</h4>
+                                    <p style="font-size: 12px; color: #0c4a6e;">标准中文列名</p>
+                                    <div style="margin-top: 10px;">
+                                        <span class="status-badge status-success">标准</span>
+                                    </div>
+                                </div>
+
+                                <div style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #b45309;">
+                                    <h4 style="color: #78350f; margin-bottom: 8px;">模板 B</h4>
+                                    <p style="font-size: 12px; color: #78350f;">混合列名，列序调整</p>
+                                    <div style="margin-top: 10px;">
+                                        <span class="status-badge status-warning">高级</span>
+                                    </div>
+                                </div>
+
+                                <div style="background: #f0fdf4; padding: 15px; border-radius: 8px; border-left: 4px solid #15803d;">
+                                    <h4 style="color: #15803d; margin-bottom: 8px;">模板 C</h4>
+                                    <p style="font-size: 12px; color: #15803d;">英文列名</p>
+                                    <div style="margin-top: 10px;">
+                                        <span class="status-badge status-success">支持</span>
+                                    </div>
+                                </div>
+
+                                <div style="background: #f3e8ff; padding: 15px; border-radius: 8px; border-left: 4px solid #7c3aed;">
+                                    <h4 style="color: #5b21b6; margin-bottom: 8px;">模板 D</h4>
+                                    <p style="font-size: 12px; color: #5b21b6;">地址拆分（省市区）</p>
+                                    <div style="margin-top: 10px;">
+                                        <span class="status-badge status-warning">复杂</span>
+                                    </div>
+                                </div>
+
+                                <div style="background: #fee2e2; padding: 15px; border-radius: 8px; border-left: 4px solid #b91c1c;">
+                                    <h4 style="color: #7f1d1d; margin-bottom: 8px;">模板 E</h4>
+                                    <p style="font-size: 12px; color: #7f1d1d;">缺少选填字段</p>
+                                    <div style="margin-top: 10px;">
+                                        <span class="status-badge status-success">灵活</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h3>🚀 核心特性</h3>
+                            <ul style="list-style: none; line-height: 2;">
+                                <li>✓ 支持自动识别不同列名格式</li>
+                                <li>✓ 使用 Levenshtein 距离算法</li>
+                                <li>✓ 别名库映射（50+ 常用别名）</li>
+                                <li>✓ 模板学习机制，自动保存映射规则</li>
+                                <li>✓ 一次性全量数据校验</li>
+                                <li>✓ 15 种校验规则，覆盖必填、格式、重复等</li>
+                                <li>✓ 虚拟滚动，支持 1000+ 行无缝处理</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 模块 4: 历史记录 -->
+                <div id="history-module" class="module">
+                    <div class="content-header">
+                        <h2>📑 历史记录</h2>
+                        <p>查看所有已导入的运单记录</p>
+                    </div>
+                    <div class="content-inner">
+                        <div class="card">
+                            <h3>高级筛选</h3>
+                            <div class="search-bar">
+                                <div class="search-item">
+                                    <label>外部编码</label>
+                                    <input type="text" id="historyCode" placeholder="按外部编码搜索">
+                                </div>
+                                <div class="search-item">
+                                    <label>收件人姓名</label>
+                                    <input type="text" id="historyName" placeholder="按收件人姓名搜索">
+                                </div>
+                                <div class="search-item">
+                                    <label>开始日期</label>
+                                    <input type="date" id="historyStartDate">
+                                </div>
+                                <div class="search-item">
+                                    <label>结束日期</label>
+                                    <input type="date" id="historyEndDate">
+                                </div>
+                                <div class="search-item" style="align-self: flex-end;">
+                                    <button class="btn btn-primary" onclick="filterHistory()">筛选</button>
+                                    <button class="btn btn-secondary" onclick="resetHistory()">重置</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h3>已导入运单列表</h3>
+                            <div style="margin-bottom: 15px;">
+                                <span style="color: #666;">每页显示 </span>
+                                <select id="pageSize" onchange="changePageSize()" style="width: 70px; padding: 6px; border: 1px solid #d0d0d0; border-radius: 4px;">
+                                    <option value="10">10</option>
+                                    <option value="20" selected>20</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                                <span style="color: #666;"> 条，共 <strong id="totalCount">0</strong> 条</span>
+                            </div>
+
+                            <div class="table-wrapper">
+                                <table id="historyTable">
+                                    <thead>
+                                        <tr>
+                                            <th>外部编码</th>
+                                            <th>发件人</th>
+                                            <th>发件电话</th>
+                                            <th>收件人</th>
+                                            <th>收件电话</th>
+                                            <th>重量(kg)</th>
+                                            <th>件数</th>
+                                            <th>温层</th>
+                                            <th>提交时间</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+
+                            <div class="pagination" id="pagination"></div>
+
+                            <div id="noHistoryData" style="text-align: center; padding: 40px 20px; color: #999;">
+                                <p style="font-size: 48px; margin-bottom: 10px;">📭</p>
+                                <p>暂无导入记录</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 模块 5: 使用指南 -->
+                <div id="guide-module" class="module">
+                    <div class="content-header">
+                        <h2>❓ 使用指南</h2>
+                        <p>了解系统的功能和使用方法</p>
+                    </div>
+                    <div class="content-inner">
+                        <div class="card">
+                            <h3>📚 快速开始</h3>
+                            <div style="line-height: 1.8; color: #666;">
+                                <h4 style="color: #333; margin-top: 15px; margin-bottom: 10px;">1. 批量导入</h4>
+                                <p>选择Excel文件进行导入。系统会自动识别列名，进行数据校验，支持在线编辑和导出。</p>
+
+                                <h4 style="color: #333; margin-top: 15px; margin-bottom: 10px;">2. 运单查询</h4>
+                                <p>按外部编码、收件人姓名或温层进行查询，快速找到所需的运单。</p>
+
+                                <h4 style="color: #333; margin-top: 15px; margin-bottom: 10px;">3. 模板管理</h4>
+                                <p>查看和管理不同格式的导入模板。系统支持中文、英文、混合等多种格式。</p>
+
+                                <h4 style="color: #333; margin-top: 15px; margin-bottom: 10px;">4. 历史记录</h4>
+                                <p>查看所有已导入的运单记录，支持按外部编码、收件人、日期进行筛选和分页显示。</p>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h3>🔑 核心功能</h3>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                                <div style="padding: 15px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #0284c7;">
+                                    <h4 style="color: #0c4a6e; margin-bottom: 8px;">多模板自动识别</h4>
+                                    <p style="font-size: 13px; color: #0c4a6e;">使用 Levenshtein 距离算法，自动识别不同格式的列名。</p>
+                                </div>
+
+                                <div style="padding: 15px; background: #f0fdf4; border-radius: 8px; border-left: 4px solid #15803d;">
+                                    <h4 style="color: #15803d; margin-bottom: 8px;">完整数据校验</h4>
+                                    <p style="font-size: 13px; color: #15803d;">15 种校验规则，覆盖必填、格式、重复等，一次性全量展示。</p>
+                                </div>
+
+                                <div style="padding: 15px; background: #fef3c7; border-radius: 8px; border-left: 4px solid #b45309;">
+                                    <h4 style="color: #78350f; margin-bottom: 8px;">虚拟滚动优化</h4>
+                                    <p style="font-size: 13px; color: #78350f;">支持 1000+ 行数据的无缝处理，性能优异。</p>
+                                </div>
+
+                                <div style="padding: 15px; background: #f3e8ff; border-radius: 8px; border-left: 4px solid #7c3aed;">
+                                    <h4 style="color: #5b21b6; margin-bottom: 8px;">在线编辑</h4>
+                                    <p style="font-size: 13px; color: #5b21b6;">支持直接编辑表格单元格，Tab/回车快捷键操作。</p>
+                                </div>
+
+                                <div style="padding: 15px; background: #fee2e2; border-radius: 8px; border-left: 4px solid #b91c1c;">
+                                    <h4 style="color: #7f1d1d; margin-bottom: 8px;">模板学习机制</h4>
+                                    <p style="font-size: 13px; color: #7f1d1d;">一次映射，永久记住。系统会保存您的映射规则。</p>
+                                </div>
+
+                                <div style="padding: 15px; background: #dbeafe; border-radius: 8px; border-left: 4px solid #0284c7;">
+                                    <h4 style="color: #0c4a6e; margin-bottom: 8px;">历史查询</h4>
+                                    <p style="font-size: 13px; color: #0c4a6e;">查询已导入的运单，支持多条件筛选和分页显示。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 模块切换 ====================
+        function switchModule(moduleName) {
+            // 隐藏所有模块
+            const modules = document.querySelectorAll('.module');
+            modules.forEach(m => m.classList.remove('active'));
+
+            // 移除所有菜单项的 active 类
+            const menuItems = document.querySelectorAll('.menu-item');
+            menuItems.forEach(item => item.classList.remove('active'));
+
+            // 显示选中的模块
+            const moduleId = moduleName + '-module';
+            const module = document.getElementById(moduleId);
+            if (module) {
+                module.classList.add('active');
+            }
+
+            // 标记选中的菜单项
+            event.target.closest('.menu-item').classList.add('active');
+
+            // 初始化模块数据
+            if (moduleName === 'history') {
+                initHistoryModule();
+            }
+        }
+
+        // ==================== 导入模块相关函数 ====================
+        let currentData = {
+            headers: [],
+            rows: [],
+            mapping: {},
+            fingerprint: '',
+            errors: [],
+            validRows: [],
+            invalidRows: []
+        };
+
+        // 模拟的导入记录数据库
+        const importedData = [
+            { id: 1, external_code: 'ORD001', sender_name: '张三', sender_phone: '13800138000', sender_address: '北京市朝阳区', receiver_name: '李四', receiver_phone: '13900139000', receiver_address: '上海市浦东新区', weight: 5, quantity: 2, temperature: '常温', created_at: '2024-05-01' },
+            { id: 2, external_code: 'ORD002', sender_name: '王五', sender_phone: '13700137000', sender_address: '深圳市南山区', receiver_name: '赵六', receiver_phone: '13600136000', receiver_address: '广州市天河区', weight: 3, quantity: 1, temperature: '冷藏', created_at: '2024-05-02' },
+            { id: 3, external_code: 'ORD003', sender_name: '黄朵', sender_phone: '13500135000', sender_address: '成都市武侯区', receiver_name: '孙七', receiver_phone: '13400134000', receiver_address: '西安市雁塔区', weight: 2.5, quantity: 3, temperature: '常温', created_at: '2024-05-03' },
+            { id: 4, external_code: 'ORD004', sender_name: '周八', sender_phone: '13300133000', sender_address: '杭州市西湖区', receiver_name: '吴九', receiver_phone: '13200132000', receiver_address: '南京市建邺区', weight: 1.8, quantity: 2, temperature: '冷冻', created_at: '2024-05-04' },
+            { id: 5, external_code: 'ORD005', sender_name: '许十', sender_phone: '12700127000', sender_address: '天津市南开区', receiver_name: '曹十一', receiver_phone: '12600126000', receiver_address: '浙江省杭州市西湖区', weight: 6, quantity: 2, temperature: '常温', created_at: '2024-05-05' },
+        ];
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('drag-over');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('drag-over');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect({ target: fileInput });
+            }
+        });
+
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+                    const headers = Object.keys(jsonData[0] || {});
+                    const rows = jsonData;
+
+                    currentData.headers = headers;
+                    currentData.rows = rows;
+
+                    document.getElementById('fileName').textContent = file.name;
+                    document.getElementById('rowCount').textContent = rows.length;
+                    document.getElementById('colCount').textContent = headers.length;
+                    document.getElementById('fileInfo').style.display = 'block';
+
+                    displayRawData(headers, rows);
+                    performMatching(headers);
+                } catch (error) {
+                    alert('文件解析失败：' + error.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function displayRawData(headers, rows) {
+            const table = document.getElementById('rawDataTable');
+            const thead = table.querySelector('thead');
+            const tbody = table.querySelector('tbody');
+
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+
+            const headerRow = thead.insertRow();
+            headers.forEach(h => {
+                const th = document.createElement('th');
+                th.textContent = h;
+                headerRow.appendChild(th);
+            });
+
+            rows.slice(0, 5).forEach((row) => {
+                const tr = tbody.insertRow();
+                headers.forEach(h => {
+                    const td = tr.insertCell();
+                    td.textContent = row[h] || '';
+                });
+            });
+
+            document.getElementById('rawDataSection').style.display = 'block';
+        }
+
+        function performMatching(headers) {
+            const standardFields = {
+                'sender_name': '发件人姓名',
+                'sender_phone': '发件人电话',
+                'sender_address': '发件人地址',
+                'receiver_name': '收件人姓名',
+                'receiver_phone': '收件人电话',
+                'receiver_address': '收件人地址',
+                'weight': '重量',
+                'quantity': '件数',
+                'temperature': '温层',
+                'external_code': '外部编码',
+                'remark': '备注'
+            };
+
+            const aliasMap = {
+                'senderName': 'sender_name',
+                'senderPhone': 'sender_phone',
+                '寄件人名': 'sender_name',
+                '寄件电话': 'sender_phone',
+                'ReceiverName': 'receiver_name',
+                'ReceiverPhone': 'receiver_phone',
+                '收货人': 'receiver_name',
+                '联系方式': 'receiver_phone',
+                'weight': 'weight',
+                '权重': 'weight',
+                'quantity': 'quantity',
+                '数量': 'quantity',
+                'temperature': 'temperature',
+                '温度等级': 'temperature',
+                '保温方式': 'temperature',
+            };
+
+            function levenshteinDistance(str1, str2) {
+                str1 = str1.toLowerCase();
+                str2 = str2.toLowerCase();
+                const m = str1.length;
+                const n = str2.length;
+                const dp = Array(m + 1).fill(0).map(() => Array(n + 1).fill(0));
+
+                for (let i = 0; i <= m; i++) dp[i][0] = i;
+                for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+                for (let i = 1; i <= m; i++) {
+                    for (let j = 1; j <= n; j++) {
+                        const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
+                        dp[i][j] = Math.min(
+                            dp[i - 1][j] + 1,
+                            dp[i][j - 1] + 1,
+                            dp[i - 1][j - 1] + cost
+                        );
+                    }
+                }
+
+                return dp[m][n];
+            }
+
+            const fingerprint = headers.join('|').substring(0, 16);
+            currentData.fingerprint = fingerprint;
+
+            const mapping = {};
+            const unmapped = [];
+
+            headers.forEach(header => {
+                if (aliasMap[header]) {
+                    mapping[header] = aliasMap[header];
+                } else {
+                    let bestMatch = null;
+                    let bestDistance = 3;
+
+                    Object.entries(standardFields).forEach(([key, value]) => {
+                        const dist = Math.min(
+                            levenshteinDistance(header, value),
+                            levenshteinDistance(header, key)
+                        );
+                        if (dist < bestDistance) {
+                            bestDistance = dist;
+                            bestMatch = key;
+                        }
+                    });
+
+                    if (bestMatch) {
+                        mapping[header] = bestMatch;
+                    } else {
+                        unmapped.push(header);
+                    }
+                }
+            });
+
+            currentData.mapping = mapping;
+
+            const confidence = ((headers.length - unmapped.length) / headers.length * 100).toFixed(1);
+            document.getElementById('fingerprint').textContent = fingerprint;
+            document.getElementById('confidence').textContent = confidence + '%';
+            document.getElementById('matchingSection').style.display = 'block';
+
+            // 显示映射编辑界面
+            displayMappingEditor(headers, standardFields);
+        }
+
+        function displayMappingEditor(headers, standardFields) {
+            const grid = document.getElementById('mappingGrid');
+            grid.innerHTML = '';
+
+            headers.forEach(header => {
+                const item = document.createElement('div');
+                item.className = 'mapping-item';
+
+                const label = document.createElement('label');
+                label.innerHTML = '来源列名: <span style="font-weight: 400; color: #666;">' + header + '</span>';
+
+                const originalName = document.createElement('div');
+                originalName.className = 'original-name';
+                originalName.textContent = '原始值示例：' + (currentData.rows[0] && currentData.rows[0][header] ? currentData.rows[0][header].toString().substring(0, 30) : 'N/A');
+
+                const select = document.createElement('select');
+                select.id = 'map_' + header;
+                select.style.marginTop = '8px';
+
+                const emptyOption = document.createElement('option');
+                emptyOption.value = '';
+                emptyOption.textContent = '-- 未映射 --';
+                select.appendChild(emptyOption);
+
+                Object.entries(standardFields).forEach(([key, value]) => {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = value + ' (' + key + ')';
+                    if (currentData.mapping[header] === key) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                });
+
+                select.addEventListener('change', (e) => {
+                    currentData.mapping[header] = e.target.value;
+                });
+
+                item.appendChild(label);
+                item.appendChild(originalName);
+                item.appendChild(select);
+                grid.appendChild(item);
+            });
+
+            document.getElementById('mappingSection').style.display = 'block';
+        }
+
+        function resetMapping() {
+            if (confirm('确定要重置映射吗？这将清除所有自定义映射。')) {
+                currentData.mapping = {};
+                performMatching(currentData.headers);
+            }
+        }
+
+        function proceedToValidation() {
+            validateData();
+            document.getElementById('mappingSection').style.display = 'none';
+        }
+
+        function validateData() {
+            const errors = [];
+            const validRows = [];
+            const invalidRows = [];
+
+            const requiredFields = {
+                'sender_name': '发件人姓名',
+                'sender_phone': '发件人电话',
+                'receiver_name': '收件人姓名',
+                'receiver_phone': '收件人电话',
+                'receiver_address': '收件人地址',
+                'weight': '重量',
+                'quantity': '件数',
+                'temperature': '温层'
+            };
+
+            function validateRow(row, rowIndex) {
+                const errors = [];
+                const mappedData = {};
+
+                Object.entries(currentData.mapping).forEach(([header, field]) => {
+                    if (field) {
+                        mappedData[field] = row[header];
+                    }
+                });
+
+                Object.entries(requiredFields).forEach(([field, label]) => {
+                    if (!mappedData[field] || mappedData[field].toString().trim() === '') {
+                        errors.push({
+                            rowIndex,
+                            rowNumber: rowIndex + 2,
+                            field: label,
+                            type: 'required',
+                            message: label + ' 必填'
+                        });
+                    }
+                });
+
+                if (mappedData['sender_phone']) {
+                    const phone = mappedData['sender_phone'].toString().trim();
+                    if (!/^1[3-9]\d{9}$/.test(phone) && phone.length !== 11) {
+                        errors.push({
+                            rowIndex,
+                            rowNumber: rowIndex + 2,
+                            field: '发件人电话',
+                            type: 'format',
+                            message: '发件人电话必须是11位数字'
+                        });
+                    }
+                }
+
+                if (mappedData['receiver_phone']) {
+                    const phone = mappedData['receiver_phone'].toString().trim();
+                    if (!/^1[3-9]\d{9}$/.test(phone) && phone.length !== 11) {
+                        errors.push({
+                            rowIndex,
+                            rowNumber: rowIndex + 2,
+                            field: '收件人电话',
+                            type: 'format',
+                            message: '收件人电话必须是11位数字'
+                        });
+                    }
+                }
+
+                if (mappedData['weight']) {
+                    const weight = parseFloat(mappedData['weight']);
+                    if (isNaN(weight) || weight <= 0) {
+                        errors.push({
+                            rowIndex,
+                            rowNumber: rowIndex + 2,
+                            field: '重量',
+                            type: 'format',
+                            message: '重量必须是正数'
+                        });
+                    }
+                }
+
+                if (mappedData['quantity']) {
+                    const qty = parseInt(mappedData['quantity']);
+                    if (isNaN(qty) || qty <= 0 || qty !== parseFloat(mappedData['quantity'])) {
+                        errors.push({
+                            rowIndex,
+                            rowNumber: rowIndex + 2,
+                            field: '件数',
+                            type: 'format',
+                            message: '件数必须是正整数'
+                        });
+                    }
+                }
+
+                if (mappedData['temperature']) {
+                    const temp = mappedData['temperature'].toString().trim();
+                    if (!['常温', '冷藏', '冷冻'].includes(temp)) {
+                        errors.push({
+                            rowIndex,
+                            rowNumber: rowIndex + 2,
+                            field: '温层',
+                            type: 'enum',
+                            message: '温层必须是：常温、冷藏、冷冻'
+                        });
+                    }
+                }
+
+                return { errors, mappedData };
+            }
+
+            currentData.rows.forEach((row, idx) => {
+                const { errors: rowErrors, mappedData } = validateRow(row, idx);
+                if (rowErrors.length === 0) {
+                    validRows.push({ ...row, ...mappedData, _rowIndex: idx });
+                } else {
+                    errors.push(...rowErrors);
+                    invalidRows.push(row);
+                }
+            });
+
+            currentData.errors = errors;
+            currentData.validRows = validRows;
+            currentData.invalidRows = invalidRows;
+
+            document.getElementById('validCount').textContent = validRows.length;
+            document.getElementById('errorCount').textContent = invalidRows.length;
+            document.getElementById('errorTypes').textContent = new Set(errors.map(e => e.type)).size;
+            document.getElementById('validationSection').style.display = 'block';
+
+            // 显示错误详情
+            if (errors.length > 0) {
+                displayErrorDetails(errors);
+            } else {
+                document.getElementById('errorDetailsSection').style.display = 'none';
+            }
+
+            // 显示可编辑的数据表格
+            if (validRows.length > 0) {
+                displayEditableDataTable(validRows);
+                showCompleteButton();
+            }
+        }
+
+        function displayErrorDetails(errors) {
+            const container = document.getElementById('errorDetailsList');
+            container.innerHTML = '';
+
+            // 按行号分组
+            const errorsByRow = {};
+            errors.forEach(error => {
+                if (!errorsByRow[error.rowNumber]) {
+                    errorsByRow[error.rowNumber] = [];
+                }
+                errorsByRow[error.rowNumber].push(error);
+            });
+
+            // 显示前15条错误
+            let errorCount = 0;
+            Object.entries(errorsByRow).forEach(([rowNum, rowErrors]) => {
+                if (errorCount >= 15) return;
+
+                rowErrors.forEach(error => {
+                    if (errorCount >= 15) return;
+
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'error-item';
+                    errorDiv.innerHTML = `
+                        <div>
+                            <span class="error-type-badge">${getErrorTypeLabel(error.type)}</span>
+                            <span class="error-row">第 ${error.rowNumber} 行 - ${error.field}</span>
+                        </div>
+                        <div class="error-message">${error.message}</div>
+                    `;
+                    container.appendChild(errorDiv);
+                    errorCount++;
+                });
+            });
+
+            if (errors.length > 15) {
+                const moreDiv = document.createElement('div');
+                moreDiv.style.padding = '12px';
+                moreDiv.style.color = '#999';
+                moreDiv.style.fontSize = '13px';
+                moreDiv.innerHTML = `<em>还有 ${errors.length - 15} 个错误</em>`;
+                container.appendChild(moreDiv);
+            }
+
+            document.getElementById('errorDetailsSection').style.display = 'block';
+        }
+
+        function getErrorTypeLabel(type) {
+            const labels = {
+                'required': '必填',
+                'format': '格式',
+                'type': '类型',
+                'enum': '枚举',
+                'duplicate': '重复',
+                'duplicate_history': '历史重复',
+                'other': '其他'
+            };
+            return labels[type] || '未知';
+        }
+
+        function toggleErrorDetails() {
+            const btn = document.getElementById('toggleErrorBtn');
+            const container = document.getElementById('errorDetailsList').parentElement;
+            if (container.style.maxHeight === 'none') {
+                container.style.maxHeight = '300px';
+                btn.textContent = '显示所有错误';
+            } else {
+                container.style.maxHeight = 'none';
+                btn.textContent = '隐藏详情';
+            }
+        }
+
+        function displayEditableDataTable(rows) {
+            const table = document.getElementById('correctedDataTable');
+            const fieldOrder = ['external_code', 'sender_name', 'sender_phone', 'sender_address',
+                'receiver_name', 'receiver_phone', 'receiver_address',
+                'weight', 'quantity', 'temperature'];
+            const fieldLabels = {
+                'external_code': '外部编码',
+                'sender_name': '发件人',
+                'sender_phone': '电话',
+                'sender_address': '地址',
+                'receiver_name': '收件人',
+                'receiver_phone': '电话',
+                'receiver_address': '地址',
+                'weight': '重量',
+                'quantity': '件数',
+                'temperature': '温层'
+            };
+
+            const thead = table.querySelector('thead');
+            const tbody = table.querySelector('tbody');
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+
+            const headerRow = thead.insertRow();
+            fieldOrder.forEach(field => {
+                const th = document.createElement('th');
+                th.textContent = fieldLabels[field];
+                headerRow.appendChild(th);
+            });
+
+            rows.slice(0, 20).forEach((row, rowIdx) => {
+                const tr = tbody.insertRow();
+                fieldOrder.forEach((field, fieldIdx) => {
+                    const td = tr.insertCell();
+                    td.className = 'editable';
+                    td.textContent = row[field] || '';
+                    td.dataset.rowIdx = rowIdx;
+                    td.dataset.field = field;
+                    td.onclick = (e) => editCell(td, rowIdx, field, rows);
+                });
+            });
+
+            document.getElementById('correctedDataSection').style.display = 'block';
+        }
+
+        let currentEditCell = null;
+
+        function editCell(cell, rowIdx, field, rows) {
+            if (currentEditCell && currentEditCell !== cell) {
+                saveCell(currentEditCell, rows);
+            }
+
+            if (cell.querySelector('input')) {
+                return; // 已在编辑中
+            }
+
+            const originalValue = cell.textContent;
+            cell.innerHTML = '';
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'cell-edit';
+            input.value = originalValue;
+            cell.appendChild(input);
+            input.focus();
+            input.select();
+
+            currentEditCell = cell;
+
+            // Tab 键 - 移到下一个单元格
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    saveCell(cell, rows);
+                    const nextCell = cell.nextElementSibling;
+                    if (nextCell) {
+                        const nextField = nextCell.dataset.field;
+                        editCell(nextCell, rowIdx, nextField, rows);
+                    }
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveCell(cell, rows);
+                    currentEditCell = null;
+                } else if (e.key === 'Escape') {
+                    cell.textContent = originalValue;
+                    currentEditCell = null;
+                }
+            });
+
+            // 失焦时保存
+            input.addEventListener('blur', () => {
+                if (currentEditCell === cell) {
+                    saveCell(cell, rows);
+                    currentEditCell = null;
+                }
+            });
+        }
+
+        function saveCell(cell, rows) {
+            const input = cell.querySelector('input');
+            if (input) {
+                const newValue = input.value;
+                const rowIdx = parseInt(cell.dataset.rowIdx);
+                const field = cell.dataset.field;
+
+                rows[rowIdx][field] = newValue;
+                cell.textContent = newValue;
+                cell.classList.remove('editing');
+            }
+        }
+
+        function displayCorrectedData(rows) {
+            const table = document.getElementById('correctedDataTable');
+            const fieldOrder = ['external_code', 'sender_name', 'sender_phone', 'sender_address',
+                'receiver_name', 'receiver_phone', 'receiver_address',
+                'weight', 'quantity', 'temperature'];
+            const fieldLabels = {
+                'external_code': '外部编码',
+                'sender_name': '发件人',
+                'sender_phone': '电话',
+                'sender_address': '地址',
+                'receiver_name': '收件人',
+                'receiver_phone': '电话',
+                'receiver_address': '地址',
+                'weight': '重量',
+                'quantity': '件数',
+                'temperature': '温层'
+            };
+
+            const thead = table.querySelector('thead');
+            const tbody = table.querySelector('tbody');
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+
+            const headerRow = thead.insertRow();
+            fieldOrder.forEach(field => {
+                const th = document.createElement('th');
+                th.textContent = fieldLabels[field];
+                headerRow.appendChild(th);
+            });
+
+            rows.slice(0, 10).forEach((row) => {
+                const tr = tbody.insertRow();
+                fieldOrder.forEach(field => {
+                    const td = tr.insertCell();
+                    td.textContent = row[field] || '';
+                });
+            });
+
+            document.getElementById('correctedDataSection').style.display = 'block';
+        }
+
+        function loadTemplate() {
+            const templateSelect = document.getElementById('templateSelect');
+            const template = templateSelect.value;
+
+            if (!template) return;
+
+            const templates = {
+                'template-a': {
+                    headers: ['发件人姓名', '发件人电话', '发件人地址', '收件人姓名', '收件人电话', '收件人地址', '重量(kg)', '件数', '温层'],
+                    rows: [
+                        { '发件人姓名': '张三', '发件人电话': '13800138000', '发件人地址': '北京市朝阳区', '收件人姓名': '李四', '收件人电话': '13900139000', '收件人地址': '上海市浦东新区', '重量(kg)': '5', '件数': '2', '温层': '常温' },
+                        { '发件人姓名': '王五', '发件人电话': '13700137000', '发件人地址': '深圳市南山区', '收件人姓名': '赵六', '收件人电话': '13600136000', '收件人地址': '广州市天河区', '重量(kg)': '3', '件数': '1', '温层': '冷藏' }
+                    ]
+                },
+                'template-b': {
+                    headers: ['寄件人名', '寄件电话', '寄件地址', '收货人', '联系方式', '收货地址', '重量', '数量', '保温方式'],
+                    rows: [
+                        { '寄件人名': '黄朵', '寄件电话': '13500135000', '寄件地址': '成都市武侯区', '收货人': '孙七', '联系方式': '13400134000', '收货地址': '西安市雁塔区', '重量': '2.5', '数量': '3', '保温方式': '常温' },
+                        { '寄件人名': '周八', '寄件电话': '13300133000', '寄件地址': '杭州市西湖区', '收货人': '吴九', '联系方式': '13200132000', '收货地址': '南京市建邺区', '重量': '1.8', '数量': '2', '保温方式': '冷冻' }
+                    ]
+                },
+                'template-c': {
+                    headers: ['SenderName', 'SenderPhone', 'SenderAddress', 'ReceiverName', 'ReceiverPhone', 'ReceiverAddress', 'Weight', 'Quantity', 'Temperature'],
+                    rows: [
+                        { 'SenderName': 'Chen', 'SenderPhone': '13100131000', 'SenderAddress': 'Chongqing', 'ReceiverName': 'Liu', 'ReceiverPhone': '13000130000', 'ReceiverAddress': 'Chengdu', 'Weight': '4', 'Quantity': '1', 'Temperature': '常温' }
+                    ]
+                },
+                'template-d': {
+                    headers: ['发件人', '发件电话', '发件地址', '收件人', '收件电话', '收件人省份', '收件人城市', '收件人区县', '权重(kg)', '单位个数', '温度等级'],
+                    rows: [
+                        { '发件人': '许十', '发件电话': '12700127000', '发件地址': '天津市南开区', '收件人': '曹十一', '收件电话': '12600126000', '收件人省份': '浙江', '收件人城市': '杭州', '收件人区县': '西湖', '权重(kg)': '6', '单位个数': '2', '温度等级': '常温' }
+                    ]
+                },
+                'template-e': {
+                    headers: ['发件人姓名', '发件人电话', '发件地址', '收件人姓名', '收件人电话', '收件地址', '重量', '件数', '温层'],
+                    rows: [
+                        { '发件人姓名': '何十四', '发件人电话': '12300123000', '发件地址': '武汉市汉口', '收件人姓名': '贾十五', '收件人电话': '12200122000', '收件地址': '南昌市青山湖', '重量': '1.2', '件数': '1', '温层': '常温' }
+                    ]
+                }
+            };
+
+            const templateData = templates[template];
+            if (templateData) {
+                currentData.headers = templateData.headers;
+                currentData.rows = templateData.rows;
+
+                document.getElementById('fileName').textContent = template + '.xlsx';
+                document.getElementById('rowCount').textContent = templateData.rows.length;
+                document.getElementById('colCount').textContent = templateData.headers.length;
+                document.getElementById('fileInfo').style.display = 'block';
+
+                displayRawData(templateData.headers, templateData.rows);
+                performMatching(templateData.headers);
+            }
+        }
+
+        function loadSampleData() {
+            document.getElementById('templateSelect').value = 'template-a';
+            loadTemplate();
+        }
+
+        function resetImport() {
+            // 重置所有状态
+            currentData = {
+                headers: [],
+                rows: [],
+                mapping: {},
+                fingerprint: '',
+                errors: [],
+                validRows: [],
+                invalidRows: []
+            };
+
+            // 隐藏所有区域
+            document.querySelectorAll('[id$="Section"], [id$="Info"]').forEach(el => {
+                el.style.display = 'none';
+            });
+
+            document.getElementById('templateSelect').value = '';
+            document.getElementById('fileInput').value = '';
+            document.getElementById('completeSection').style.display = 'none';
+        }
+
+        function exportData() {
+            if (currentData.validRows.length === 0) {
+                alert('没有有效的数据可以导出');
+                return;
+            }
+
+            // 准备导出数据
+            const fieldLabels = {
+                'external_code': '外部编码',
+                'sender_name': '发件人姓名',
+                'sender_phone': '发件人电话',
+                'sender_address': '发件人地址',
+                'receiver_name': '收件人姓名',
+                'receiver_phone': '收件人电话',
+                'receiver_address': '收件人地址',
+                'weight': '重量(kg)',
+                'quantity': '件数',
+                'temperature': '温层'
+            };
+
+            const fieldOrder = ['external_code', 'sender_name', 'sender_phone', 'sender_address',
+                'receiver_name', 'receiver_phone', 'receiver_address',
+                'weight', 'quantity', 'temperature'];
+
+            // 创建工作簿
+            const wb = XLSX.utils.book_new();
+            const data = [
+                fieldOrder.map(f => fieldLabels[f])
+            ];
+
+            currentData.validRows.forEach(row => {
+                const rowData = [];
+                fieldOrder.forEach(field => {
+                    rowData.push(row[field] || '');
+                });
+                data.push(rowData);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            XLSX.utils.book_append_sheet(wb, ws, 'Orders');
+
+            // 设置列宽
+            ws['!cols'] = [
+                { wch: 12 },  // 外部编码
+                { wch: 12 },  // 发件人
+                { wch: 15 },  // 发件电话
+                { wch: 20 },  // 发件地址
+                { wch: 12 },  // 收件人
+                { wch: 15 },  // 收件电话
+                { wch: 20 },  // 收件地址
+                { wch: 8 },   // 重量
+                { wch: 6 },   // 件数
+                { wch: 8 }    // 温层
+            ];
+
+            // 导出文件
+            const now = new Date();
+            const fileName = `导入数据_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+
+            alert('导出成功！');
+        }
+
+        // 在validateData函数最后添加完成导入按钮
+        function showCompleteButton() {
+            if (currentData.validRows.length > 0) {
+                document.getElementById('successCount').textContent = currentData.validRows.length;
+                document.getElementById('completeSection').style.display = 'block';
+            }
+        }
+
+        // ==================== 查询模块函数 ====================
+        function performQuery() {
+            const code = document.getElementById('queryCode').value.trim();
+            const name = document.getElementById('queryName').value.trim();
+            const temp = document.getElementById('queryTemperature').value;
+
+            let results = importedData.filter(item => {
+                if (code && !item.external_code.includes(code)) return false;
+                if (name && !item.receiver_name.includes(name)) return false;
+                if (temp && item.temperature !== temp) return false;
+                return true;
+            });
+
+            document.getElementById('resultCount').textContent = results.length;
+            const tbody = document.getElementById('queryTable').querySelector('tbody');
+            tbody.innerHTML = '';
+
+            if (results.length === 0) {
+                document.getElementById('queryResults').style.display = 'none';
+                document.getElementById('noResults').style.display = 'block';
+            } else {
+                document.getElementById('noResults').style.display = 'none';
+                document.getElementById('queryResults').style.display = 'block';
+
+                results.forEach(item => {
+                    const tr = tbody.insertRow();
+                    tr.innerHTML = `
+                        <td>${item.external_code}</td>
+                        <td>${item.receiver_name}</td>
+                        <td>${item.sender_name}</td>
+                        <td>${item.weight}</td>
+                        <td><span class="status-badge status-success">${item.temperature}</span></td>
+                        <td><button class="btn btn-primary btn-small" onclick="viewDetail(${item.id})">查看详情</button></td>
+                    `;
+                });
+            }
+        }
+
+        function resetQuery() {
+            document.getElementById('queryCode').value = '';
+            document.getElementById('queryName').value = '';
+            document.getElementById('queryTemperature').value = '';
+            document.getElementById('queryResults').style.display = 'none';
+            document.getElementById('noResults').style.display = 'block';
+        }
+
+        function viewDetail(id) {
+            const item = importedData.find(i => i.id === id);
+            if (item) {
+                alert(`运单详情：\n外部编码: ${item.external_code}\n收件人: ${item.receiver_name}\n地址: ${item.receiver_address}\n重量: ${item.weight}kg\n温层: ${item.temperature}`);
+            }
+        }
+
+        // ==================== 历史记录模块函数 ====================
+        let historyCurrentPage = 1;
+        let historyPageSize = 20;
+        let historyFilteredData = [];
+
+        function initHistoryModule() {
+            historyFilteredData = [...importedData];
+            displayHistoryPage();
+        }
+
+        function displayHistoryPage() {
+            const start = (historyCurrentPage - 1) * historyPageSize;
+            const end = start + historyPageSize;
+            const pageData = historyFilteredData.slice(start, end);
+
+            const tbody = document.getElementById('historyTable').querySelector('tbody');
+            tbody.innerHTML = '';
+
+            if (pageData.length === 0) {
+                document.getElementById('noHistoryData').style.display = 'block';
+                document.getElementById('historyTable').parentElement.style.display = 'none';
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+
+            document.getElementById('noHistoryData').style.display = 'none';
+            document.getElementById('historyTable').parentElement.style.display = 'block';
+
+            pageData.forEach(item => {
+                const tr = tbody.insertRow();
+                tr.innerHTML = `
+                    <td>${item.external_code || '-'}</td>
+                    <td>${item.sender_name}</td>
+                    <td>${item.sender_phone}</td>
+                    <td>${item.receiver_name}</td>
+                    <td>${item.receiver_phone}</td>
+                    <td>${item.weight}</td>
+                    <td>${item.quantity}</td>
+                    <td><span class="status-badge status-success">${item.temperature}</span></td>
+                    <td>${item.created_at}</td>
+                    <td><button class="btn btn-primary btn-small" onclick="viewDetail(${item.id})">查看</button></td>
+                `;
+            });
+
+            document.getElementById('totalCount').textContent = historyFilteredData.length;
+            renderPagination();
+        }
+
+        function renderPagination() {
+            const totalPages = Math.ceil(historyFilteredData.length / historyPageSize);
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+
+            if (totalPages <= 1) return;
+
+            // 上一页
+            const prevBtn = document.createElement('button');
+            prevBtn.textContent = '上一页';
+            prevBtn.disabled = historyCurrentPage === 1;
+            prevBtn.onclick = () => {
+                if (historyCurrentPage > 1) {
+                    historyCurrentPage--;
+                    displayHistoryPage();
+                }
+            };
+            pagination.appendChild(prevBtn);
+
+            // 页码按钮
+            for (let i = 1; i <= Math.min(totalPages, 5); i++) {
+                const btn = document.createElement('button');
+                btn.textContent = i;
+                if (i === historyCurrentPage) btn.classList.add('active');
+                btn.onclick = () => {
+                    historyCurrentPage = i;
+                    displayHistoryPage();
+                };
+                pagination.appendChild(btn);
+            }
+
+            if (totalPages > 5) {
+                const dots = document.createElement('span');
+                dots.textContent = '...';
+                dots.style.padding = '8px 5px';
+                pagination.appendChild(dots);
+
+                const lastBtn = document.createElement('button');
+                lastBtn.textContent = totalPages;
+                lastBtn.onclick = () => {
+                    historyCurrentPage = totalPages;
+                    displayHistoryPage();
+                };
+                pagination.appendChild(lastBtn);
+            }
+
+            // 下一页
+            const nextBtn = document.createElement('button');
+            nextBtn.textContent = '下一页';
+            nextBtn.disabled = historyCurrentPage === totalPages;
+            nextBtn.onclick = () => {
+                if (historyCurrentPage < totalPages) {
+                    historyCurrentPage++;
+                    displayHistoryPage();
+                }
+            };
+            pagination.appendChild(nextBtn);
+        }
+
+        function filterHistory() {
+            const code = document.getElementById('historyCode').value.trim();
+            const name = document.getElementById('historyName').value.trim();
+            const startDate = document.getElementById('historyStartDate').value;
+            const endDate = document.getElementById('historyEndDate').value;
+
+            historyFilteredData = importedData.filter(item => {
+                if (code && !item.external_code.includes(code)) return false;
+                if (name && !item.receiver_name.includes(name)) return false;
+                if (startDate && item.created_at < startDate) return false;
+                if (endDate && item.created_at > endDate) return false;
+                return true;
+            });
+
+            historyCurrentPage = 1;
+            displayHistoryPage();
+        }
+
+        function resetHistory() {
+            document.getElementById('historyCode').value = '';
+            document.getElementById('historyName').value = '';
+            document.getElementById('historyStartDate').value = '';
+            document.getElementById('historyEndDate').value = '';
+            historyFilteredData = [...importedData];
+            historyCurrentPage = 1;
+            displayHistoryPage();
+        }
+
+        function changePageSize() {
+            historyPageSize = parseInt(document.getElementById('pageSize').value);
+            historyCurrentPage = 1;
+            displayHistoryPage();
+        }
+    </script>
+</body>
+</html>
