@@ -1,0 +1,192 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 模板表 - 存储导入模板信息
+model ImportTemplate {
+  id        String   @id @default(cuid())
+  name      String   @db.VarChar(255)
+  description String? @db.Text
+  
+  // 模板配置
+  columns   TemplateColumn[]
+  mappings  FieldMapping[]
+  
+  // 元数据
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  
+  // 关系
+  imports   ImportRecord[]
+  
+  @@index([createdAt])
+  @@index([createdBy])
+}
+
+// 模板列定义
+model TemplateColumn {
+  id        String   @id @default(cuid())
+  templateId String
+  template  ImportTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  
+  // 列属性
+  columnName String   @db.VarChar(255)
+  displayName String @db.VarChar(255)
+  dataType  String   @db.VarChar(50) // text, number, date, boolean, etc.
+  required  Boolean  @default(false)
+  unique    Boolean  @default(false)
+  
+  // 验证规则
+  minLength Int?
+  maxLength Int?
+  pattern   String?  @db.Text
+  
+  // 排序
+  order     Int      @default(0)
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([templateId, columnName])
+  @@index([templateId])
+}
+
+// 字段映射 - 用于自动匹配和转换
+model FieldMapping {
+  id        String   @id @default(cuid())
+  templateId String
+  template  ImportTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  
+  sourceField String  @db.VarChar(255)
+  targetField String  @db.VarChar(255)
+  
+  // 转换规则
+  transformationType String? @db.VarChar(100) // 如: uppercase, lowercase, trim, etc.
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([templateId, sourceField])
+  @@index([templateId])
+}
+
+// 导入记录
+model ImportRecord {
+  id        String   @id @default(cuid())
+  templateId String
+  template  ImportTemplate @relation(fields: [templateId], references: [id])
+  
+  // 文件信息
+  fileName  String   @db.VarChar(255)
+  fileSize  BigInt
+  mimeType  String   @db.VarChar(100)
+  
+  // 导入状态
+  status    ImportStatus @default(PENDING) // PENDING, PROCESSING, SUCCESS, FAILED, PARTIAL
+  
+  // 统计信息
+  totalRows Int      @default(0)
+  successRows Int    @default(0)
+  failedRows Int     @default(0)
+  
+  // 错误日志
+  errorLog  String?  @db.Text
+  
+  // 元数据
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  startedAt DateTime?
+  completedAt DateTime?
+  
+  // 关系
+  rows      ImportRow[]
+  
+  @@index([templateId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum ImportStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
+  PARTIAL
+}
+
+// 导入行数据
+model ImportRow {
+  id        String   @id @default(cuid())
+  recordId  String
+  record    ImportRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  
+  // 行信息
+  rowIndex  Int
+  status    RowStatus @default(PENDING)
+  
+  // 数据存储为JSON
+  data      Json
+  
+  // 验证错误
+  errors    String?  @db.Text
+  
+  createdAt DateTime @default(now())
+  
+  @@index([recordId])
+  @@index([status])
+}
+
+enum RowStatus {
+  PENDING
+  VALID
+  INVALID
+  PROCESSED
+}
+
+// 用户表 - 用于权限管理
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique @db.VarChar(255)
+  name      String?  @db.VarChar(255)
+  password  String   @db.Text // 建议使用bcrypt加密
+  
+  role      UserRole @default(USER) // ADMIN, USER
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([email])
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+// 系统日志
+model SystemLog {
+  id        String   @id @default(cuid())
+  level     LogLevel
+  message   String   @db.Text
+  metadata  Json?
+  
+  createdAt DateTime @default(now())
+  
+  @@index([level])
+  @@index([createdAt])
+}
+
+enum LogLevel {
+  DEBUG
+  INFO
+  WARN
+  ERROR
+  FATAL
+}
