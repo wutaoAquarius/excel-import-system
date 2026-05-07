@@ -234,30 +234,8 @@ export default function ImportPage() {
     try {
       setState((prev) => ({ ...prev, isLoading: true, stepProgress: 20 }))
 
-      // 再次校验
-      setState((prev) => ({ ...prev, stepProgress: 40 }))
-      const response = await fetch('/api/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          rows: state.validRows,
-          mapping: state.mapping,
-          headers: state.headers,
-        }),
-      })
-
-      if (!response.ok) throw new Error('数据校验失败')
-
-      const result = await response.json()
-
-      if (result.errors && result.errors.length > 0) {
-        alert('仍存在校验错误，请修正后再提交')
-        setState((prev) => ({ ...prev, stepProgress: 0 }))
-        return
-      }
-
-      // 提交到数据库
-      setState((prev) => ({ ...prev, stepProgress: 70 }))
+      // 直接提交到数据库，不再进行二次校验
+      setState((prev) => ({ ...prev, stepProgress: 50 }))
       const submitResponse = await fetch('/api/imports/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -266,7 +244,10 @@ export default function ImportPage() {
         }),
       })
 
-      if (!submitResponse.ok) throw new Error('提交失败')
+      if (!submitResponse.ok) {
+        const errorData = await submitResponse.json()
+        throw new Error(errorData.message || '提交失败')
+      }
 
       await submitResponse.json()
 
