@@ -1,5 +1,7 @@
 'use client'
 
+import ColumnSelect from './ColumnSelect'
+
 interface ColumnMappingProps {
   headers: string[]
   mapping: Record<string, string> // 现在是：系统字段英文 -> Excel列名
@@ -39,6 +41,10 @@ const SYSTEM_FIELDS_ORDER = [
   'external_code',
   'remark',
 ]
+
+// 字段分组
+const REQUIRED_FIELDS = SYSTEM_FIELDS_ORDER.filter((f) => SYSTEM_FIELDS[f].required)
+const OPTIONAL_FIELDS = SYSTEM_FIELDS_ORDER.filter((f) => !SYSTEM_FIELDS[f].required)
 
 export default function ColumnMapping({
   headers,
@@ -173,95 +179,134 @@ export default function ColumnMapping({
         </div>
       </div>
 
-      {/* 系统字段卡片网格 */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: '15px',
-          marginTop: '15px',
-        }}
-      >
-        {SYSTEM_FIELDS_ORDER.map((systemField) => {
-          const fieldInfo = SYSTEM_FIELDS[systemField]
-          const selectedColumn = mapping[systemField] || ''
-          
-          return (
-            <div
-              key={systemField}
-              style={{
-                padding: '15px',
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
-                backgroundColor: selectedColumn ? '#f0fdf4' : '#ffffff',
-                borderLeft: fieldInfo.required ? '4px solid #dc2626' : '4px solid #e5e7eb',
-              }}
-            >
-              <label style={{
-                display: 'block',
-                marginBottom: '8px',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#1f2937',
-              }}>
-                {fieldInfo.cnName}
-                {fieldInfo.required && <span style={{ color: '#dc2626', marginLeft: '4px' }}>*</span>}
-              </label>
-              
-              <select
-                value={selectedColumn}
-                onChange={(e) => handleFieldMappingChange(systemField, e.target.value)}
+      {/* 必填字段组 */}
+      <div style={{ marginTop: '20px' }}>
+        <h4 style={{
+          color: '#dc2626',
+          fontSize: '14px',
+          fontWeight: '600',
+          marginBottom: '12px',
+          paddingBottom: '8px',
+          borderBottom: '2px solid #dc2626',
+        }}>
+          📌 必填字段 ({REQUIRED_FIELDS.length} 个)
+        </h4>
+        
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: '15px',
+          }}
+        >
+          {REQUIRED_FIELDS.map((systemField) => {
+            const fieldInfo = SYSTEM_FIELDS[systemField]
+            const selectedColumn = mapping[systemField] || ''
+            const disabledColumns = Object.entries(mapping)
+              .filter(([field]) => field !== systemField)
+              .map(([, col]) => col)
+            
+            return (
+              <div
+                key={systemField}
                 style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '6px',
-                  fontSize: '13px',
-                  backgroundColor: '#ffffff',
+                  padding: '15px',
+                  border: '1px solid #fecaca',
+                  borderRadius: '8px',
+                  backgroundColor: selectedColumn ? '#fef2f2' : '#ffffff',
+                  borderLeft: '4px solid #dc2626',
                 }}
               >
-                <option value="">-- 不映射 --</option>
-                {headers.map((header) => {
-                  // 检查该列是否已被其他字段映射
-                  const isUsedByOther = Object.entries(mapping).some(
-                    ([field, col]) => col === header && field !== systemField
-                  )
-                  
-                  return (
-                    <option
-                      key={header}
-                      value={header}
-                      disabled={isUsedByOther}
-                      title={isUsedByOther ? '该列已被其他字段使用' : ''}
-                    >
-                      {header}
-                      {isUsedByOther ? ' (已使用)' : ''}
-                    </option>
-                  )
-                })}
-              </select>
-
-              {selectedColumn && (
-                <div style={{
-                  marginTop: '8px',
-                  padding: '8px',
-                  backgroundColor: '#ecfdf5',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  color: '#047857',
+                <label style={{
+                  display: 'block',
+                  marginBottom: '10px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#1f2937',
                 }}>
-                  ✓ 已映射到：<strong>{selectedColumn}</strong>
-                </div>
-              )}
-            </div>
-          )
-        })}
+                  {fieldInfo.cnName}
+                  <span style={{ color: '#dc2626', marginLeft: '4px' }}>*</span>
+                </label>
+                
+                <ColumnSelect
+                  value={selectedColumn}
+                  options={headers}
+                  disabledOptions={disabledColumns}
+                  onChange={(col) => handleFieldMappingChange(systemField, col)}
+                  placeholder="搜索列名..."
+                />
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* 可选字段组 */}
+      <div style={{ marginTop: '25px' }}>
+        <h4 style={{
+          color: '#999',
+          fontSize: '14px',
+          fontWeight: '600',
+          marginBottom: '12px',
+          paddingBottom: '8px',
+          borderBottom: '2px solid #e5e7eb',
+        }}>
+          📝 可选字段 ({OPTIONAL_FIELDS.length} 个)
+        </h4>
+        
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: '15px',
+          }}
+        >
+          {OPTIONAL_FIELDS.map((systemField) => {
+            const fieldInfo = SYSTEM_FIELDS[systemField]
+            const selectedColumn = mapping[systemField] || ''
+            const disabledColumns = Object.entries(mapping)
+              .filter(([field]) => field !== systemField)
+              .map(([, col]) => col)
+            
+            return (
+              <div
+                key={systemField}
+                style={{
+                  padding: '15px',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  backgroundColor: selectedColumn ? '#f9fafb' : '#ffffff',
+                  borderLeft: '4px solid #d1d5db',
+                }}
+              >
+                <label style={{
+                  display: 'block',
+                  marginBottom: '10px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#1f2937',
+                }}>
+                  {fieldInfo.cnName}
+                  <span style={{ color: '#999', marginLeft: '4px', fontSize: '12px' }}>(可选)</span>
+                </label>
+                
+                <ColumnSelect
+                  value={selectedColumn}
+                  options={headers}
+                  disabledOptions={disabledColumns}
+                  onChange={(col) => handleFieldMappingChange(systemField, col)}
+                  placeholder="搜索列名..."
+                />
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       {/* 警告提示 */}
       {!allRequiredFieldsMapped && (
         <div style={{
-          marginTop: '20px',
+          marginTop: '25px',
           padding: '12px',
           backgroundColor: '#fef3c7',
           border: '1px solid #fcd34d',
@@ -269,7 +314,7 @@ export default function ColumnMapping({
           color: '#92400e',
           fontSize: '13px',
         }}>
-          ⚠️ 还有 <strong>{requiredFields.length - mappedRequiredFields.length}</strong> 个必填字段未映射
+          ⚠️ 还有 <strong>{requiredFields.length - mappedRequiredFields.length}</strong> 个必填字段未映射。请完成必填字段的映射后继续。
         </div>
       )}
 
