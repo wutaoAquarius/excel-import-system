@@ -1,0 +1,37 @@
+{
+  "name": "excel-import-system",
+  "version": "1.0.0",
+  "description": "万能导入——多模板自动导入下单系统",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "^14.0.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "@vercel/postgres": "^0.7.0",
+    "xlsx": "^0.18.5",
+    "exceljs": "^4.3.0",
+    "zustand": "^4.4.0",
+    "@tanstack/react-table": "^8.10.0",
+    "@tanstack/react-virtual": "^3.0.0",
+    "string-similarity": "^4.0.4",
+    "lucide-react": "^0.294.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.42",
+    "@types/react-dom": "^18.2.17",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.3.6",
+    "eslint": "^8.55.0",
+    "eslint-config-next": "^14.0.0"
+  }
+}
