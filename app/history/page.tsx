@@ -77,6 +77,7 @@ export default function HistoryPage() {
 
   useEffect(() => {
     fetchOrders(1)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // 处理筛选
