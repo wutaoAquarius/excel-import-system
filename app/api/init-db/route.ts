@@ -8,6 +8,22 @@ import bcrypt from 'bcryptjs'
  */
 export async function POST(_request: NextRequest) {
   try {
+    // 首先检查数据库连接
+    try {
+      await prisma.$queryRaw`SELECT 1`
+      console.log('✓ 数据库连接成功')
+    } catch (connError) {
+      console.error('数据库连接失败:', connError)
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: '数据库连接失败',
+          error: (connError as Error).message 
+        },
+        { status: 503 }
+      )
+    }
+
     // 检查管理员用户是否已存在
     const adminExists = await prisma.user.findUnique({
       where: { email: 'admin@example.com' },
