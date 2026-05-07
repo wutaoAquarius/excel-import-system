@@ -51,6 +51,7 @@ export const VALIDATION_RULES = {
 
 /**
  * 验证单行数据
+ * mapping 格式：系统字段 (英文) -> Excel 列名
  */
 export function validateRow(
   row: Record<string, any>,
@@ -62,21 +63,13 @@ export function validateRow(
   const errors: ValidationError[] = []
   const mappedRow: Record<string, any> = {}
 
-  // 检查数据是否已经映射（如果未明确指定，则自动检测）
-  const shouldMapData = isAlreadyMapped === undefined 
-    ? !Object.values(mapping).some((v) => v && row[v] !== undefined)
-    : !isAlreadyMapped
-
-  if (shouldMapData) {
-    // 映射行数据：从原始列名转换为系统字段名
-    for (const [excelCol, systemField] of Object.entries(mapping)) {
-      if (systemField && systemField !== '不映射') {
-        mappedRow[systemField] = row[excelCol]
-      }
+  // 根据新的映射格式（系统字段 -> Excel列名）映射数据
+  // mapping 的 key 是系统字段英文名，value 是对应的 Excel 列名
+  for (const [systemField, excelColumn] of Object.entries(mapping)) {
+    if (excelColumn) {
+      // excelColumn 是 Excel 中的列名，从 row 中取出对应的值
+      mappedRow[systemField] = row[excelColumn]
     }
-  } else {
-    // 数据已经映射，直接使用
-    Object.assign(mappedRow, row)
   }
 
   // 必填字段检查
@@ -172,6 +165,7 @@ export function validateRow(
 
 /**
  * 验证所有行数据
+ * mapping 格式：系统字段 (英文) -> Excel 列名
  */
 export function validateAllRows(
   rows: Record<string, any>[],
@@ -186,11 +180,8 @@ export function validateAllRows(
   const validRows: Record<string, any>[] = []
   const invalidRows: Record<string, any>[] = []
 
-  // 检测数据是否已经映射：如果所有的行都包含英文字段名（如 sender_name），则说明已映射
-  const isAlreadyMapped = rows.length > 0 && Object.values(mapping).some((v) => v && rows[0][v] !== undefined)
-
   rows.forEach((row, index) => {
-    const rowErrors = validateRow(row, mapping, rows, validRows, isAlreadyMapped)
+    const rowErrors = validateRow(row, mapping, rows, validRows)
     rowErrors.forEach((error) => {
       errors.push({
         ...error,
@@ -199,22 +190,13 @@ export function validateAllRows(
     })
 
     if (rowErrors.length === 0) {
-      // 如果数据已经映射，直接使用；否则重新映射
-      let mappedRow: Record<string, any>
-      
-      if (isAlreadyMapped) {
-        // 数据已经是英文字段名，直接验证字段
-        mappedRow = { ...row }
-      } else {
-        // 数据是原始的（中文列名），需要映射
-        mappedRow = {}
-        for (const [excelCol, systemField] of Object.entries(mapping)) {
-          if (systemField && systemField !== '不映射') {
-            mappedRow[systemField] = row[excelCol]
-          }
+      // 映射数据：根据 mapping（系统字段 -> Excel列名）转换
+      const mappedRow: Record<string, any> = {}
+      for (const [systemField, excelColumn] of Object.entries(mapping)) {
+        if (excelColumn) {
+          mappedRow[systemField] = row[excelColumn]
         }
       }
-      
       validRows.push(mappedRow)
     } else {
       invalidRows.push(row)

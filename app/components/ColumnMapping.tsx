@@ -2,7 +2,7 @@
 
 interface ColumnMappingProps {
   headers: string[]
-  mapping: Record<string, string>
+  mapping: Record<string, string> // 现在是：系统字段英文 -> Excel列名
   onMappingChange: (mapping: Record<string, string>) => void
   fingerprint?: string
   confidence?: number
@@ -11,37 +11,34 @@ interface ColumnMappingProps {
   onPrevious?: () => void
 }
 
-// 系统字段的中文显示名称
-const SYSTEM_FIELDS_CN = [
-  '发件人姓名',
-  '发件人电话',
-  '发件人地址',
-  '收件人姓名',
-  '收件人电话',
-  '收件人地址',
-  '重量',
-  '件数',
-  '温层',
-  '外部编码',
-  '备注',
-  '不映射',
-]
-
-// 中文到英文的映射（用于存储和验证）
-const FIELD_NAME_MAP: Record<string, string> = {
-  '发件人姓名': 'sender_name',
-  '发件人电话': 'sender_phone',
-  '发件人地址': 'sender_address',
-  '收件人姓名': 'receiver_name',
-  '收件人电话': 'receiver_phone',
-  '收件人地址': 'receiver_address',
-  '重量': 'weight',
-  '件数': 'quantity',
-  '温层': 'temperature',
-  '外部编码': 'external_code',
-  '备注': 'remark',
-  '不映射': '不映射',
+// 系统字段定义（英文 -> 中文）
+const SYSTEM_FIELDS: Record<string, { cnName: string; required: boolean }> = {
+  sender_name: { cnName: '发件人姓名', required: true },
+  sender_phone: { cnName: '发件人电话', required: true },
+  sender_address: { cnName: '发件人地址', required: true },
+  receiver_name: { cnName: '收件人姓名', required: true },
+  receiver_phone: { cnName: '收件人电话', required: true },
+  receiver_address: { cnName: '收件人地址', required: true },
+  weight: { cnName: '重量', required: true },
+  quantity: { cnName: '件数', required: true },
+  temperature: { cnName: '温层', required: true },
+  external_code: { cnName: '外部编码', required: false },
+  remark: { cnName: '备注', required: false },
 }
+
+const SYSTEM_FIELDS_ORDER = [
+  'sender_name',
+  'sender_phone',
+  'sender_address',
+  'receiver_name',
+  'receiver_phone',
+  'receiver_address',
+  'weight',
+  'quantity',
+  'temperature',
+  'external_code',
+  'remark',
+]
 
 export default function ColumnMapping({
   headers,
@@ -53,27 +50,39 @@ export default function ColumnMapping({
   onReset,
   onPrevious,
 }: ColumnMappingProps) {
-  const handleMappingChange = (header: string, cnField: string) => {
+  // 处理系统字段的映射变化
+  const handleFieldMappingChange = (systemField: string, excelColumn: string) => {
     const newMapping = { ...mapping }
-    // 转换中文字段名到英文进行存储
-    const englishField = FIELD_NAME_MAP[cnField] || cnField
-    newMapping[header] = englishField
+    
+    if (excelColumn === '') {
+      // 取消映射
+      delete newMapping[systemField]
+    } else {
+      // 移除该 Excel 列从其他系统字段的映射
+      Object.keys(newMapping).forEach((field) => {
+        if (newMapping[field] === excelColumn && field !== systemField) {
+          delete newMapping[field]
+        }
+      })
+      // 设置新映射
+      newMapping[systemField] = excelColumn
+    }
+    
     onMappingChange(newMapping)
   }
   
-  // 创建英文到中文的反向映射（用于显示）
-  const englishToCN = Object.entries(FIELD_NAME_MAP).reduce(
-    (acc, [cn, en]) => ({ ...acc, [en]: cn }),
-    {} as Record<string, string>
-  )
-
-  // 检查是否有未映射的字段
-  const unmappedFields = headers.filter((header) => !mapping[header])
-  const hasUnmappedFields = unmappedFields.length > 0
+  // 获取已被映射的 Excel 列
+  const mappedColumns = new Set(Object.values(mapping).filter(v => v))
   
-  // 计算映射进度
-  const mappedCount = headers.length - unmappedFields.length
-  const mappingProgress = Math.round((mappedCount / headers.length) * 100)
+  // 获取未被映射的 Excel 列
+  const unmappedColumns = headers.filter(h => !mappedColumns.has(h))
+  
+  // 计算必填字段映射情况
+  const requiredFields = Object.keys(SYSTEM_FIELDS).filter(
+    (field) => SYSTEM_FIELDS[field].required
+  )
+  const mappedRequiredFields = requiredFields.filter((field) => mapping[field])
+  const allRequiredFieldsMapped = mappedRequiredFields.length === requiredFields.length
 
   return (
     <div className="card">
@@ -115,10 +124,10 @@ export default function ColumnMapping({
 
       <div style={{ marginBottom: '15px', marginTop: '15px' }}>
         <p style={{ color: '#666', fontSize: '13px', marginBottom: '10px' }}>
-          请确认以下列的映射是否正确，可手动调整：
+          请将 Excel 列映射到系统字段。必填字段标有 <span style={{ color: '#dc2626', fontWeight: 'bold' }}>*</span>：
         </p>
         
-        {/* 映射进度显示 */}
+        {/* 映射统计显示 */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -134,11 +143,11 @@ export default function ColumnMapping({
               color: '#666',
               marginBottom: '6px',
             }}>
-              映射进度：{mappedCount}/{headers.length} ({mappingProgress}%)
+              必填字段映射：{mappedRequiredFields.length}/{requiredFields.length}
             </div>
             <progress
-              value={mappingProgress}
-              max="100"
+              value={mappedRequiredFields.length}
+              max={requiredFields.length}
               style={{
                 width: '100%',
                 height: '6px',
@@ -148,104 +157,145 @@ export default function ColumnMapping({
               }}
             />
           </div>
-          {hasUnmappedFields && (
+          {unmappedColumns.length > 0 && (
             <div style={{
               padding: '6px 12px',
-              backgroundColor: '#fee2e2',
-              color: '#dc2626',
+              backgroundColor: '#f0fdf4',
+              color: '#059669',
               borderRadius: '4px',
               fontSize: '12px',
               whiteSpace: 'nowrap',
               fontWeight: '500',
             }}>
-              ⚠️ {unmappedFields.length} 个未映射
+              ✓ 未映射列：{unmappedColumns.length}
             </div>
           )}
         </div>
       </div>
 
-      {/* 映射网格 */}
+      {/* 系统字段卡片网格 */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
           gap: '15px',
+          marginTop: '15px',
         }}
       >
-        {headers.map((header) => {
-          // 从存储的英文映射值转换为中文显示
-          const englishValue = mapping[header] || ''
-          const cnValue = englishToCN[englishValue] || ''
-          const displayField = cnValue || '未映射'
+        {SYSTEM_FIELDS_ORDER.map((systemField) => {
+          const fieldInfo = SYSTEM_FIELDS[systemField]
+          const selectedColumn = mapping[systemField] || ''
           
           return (
-            <div key={header} className="mapping-item">
-              <label>
-                <strong>{displayField}</strong>
+            <div
+              key={systemField}
+              style={{
+                padding: '15px',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                backgroundColor: selectedColumn ? '#f0fdf4' : '#ffffff',
+                borderLeft: fieldInfo.required ? '4px solid #dc2626' : '4px solid #e5e7eb',
+              }}
+            >
+              <label style={{
+                display: 'block',
+                marginBottom: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#1f2937',
+              }}>
+                {fieldInfo.cnName}
+                {fieldInfo.required && <span style={{ color: '#dc2626', marginLeft: '4px' }}>*</span>}
               </label>
-              <div className="original-name">原始列名：{header}</div>
+              
               <select
-                value={cnValue}
-                onChange={(e) => handleMappingChange(header, e.target.value)}
+                value={selectedColumn}
+                onChange={(e) => handleFieldMappingChange(systemField, e.target.value)}
                 style={{
                   width: '100%',
                   padding: '8px',
                   border: '1px solid var(--border-color)',
                   borderRadius: '6px',
                   fontSize: '13px',
+                  backgroundColor: '#ffffff',
                 }}
               >
-                <option value="">-- 选择映射字段 --</option>
-                {SYSTEM_FIELDS_CN.map((field) => (
-                  <option key={field} value={field}>
-                    {field}
-                  </option>
-                ))}
+                <option value="">-- 不映射 --</option>
+                {headers.map((header) => {
+                  // 检查该列是否已被其他字段映射
+                  const isUsedByOther = Object.entries(mapping).some(
+                    ([field, col]) => col === header && field !== systemField
+                  )
+                  
+                  return (
+                    <option
+                      key={header}
+                      value={header}
+                      disabled={isUsedByOther}
+                      title={isUsedByOther ? '该列已被其他字段使用' : ''}
+                    >
+                      {header}
+                      {isUsedByOther ? ' (已使用)' : ''}
+                    </option>
+                  )
+                })}
               </select>
+
+              {selectedColumn && (
+                <div style={{
+                  marginTop: '8px',
+                  padding: '8px',
+                  backgroundColor: '#ecfdf5',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  color: '#047857',
+                }}>
+                  ✓ 已映射到：<strong>{selectedColumn}</strong>
+                </div>
+              )}
             </div>
           )
         })}
       </div>
 
-      {/* 按钮组 */}
-      <div style={{ marginTop: '20px' }}>
-        {hasUnmappedFields && (
-          <div style={{
-            padding: '12px',
-            backgroundColor: '#fef3c7',
-            border: '1px solid #fcd34d',
-            borderRadius: '6px',
-            color: '#92400e',
-            marginBottom: '15px',
-            fontSize: '13px',
-          }}>
-            ⚠️ 必须映射所有列。未映射的列：{unmappedFields.map((f) => `"${f}"`).join(', ')}
-          </div>
-        )}
-        
-        <div style={{ textAlign: 'right' }}>
-          {onPrevious && (
-            <button
-              className="btn btn-secondary"
-              onClick={onPrevious}
-              style={{ marginRight: '10px' }}
-            >
-              上一步
-            </button>
-          )}
-          <button className="btn btn-secondary" onClick={onReset}>
-            重置映射
-          </button>
-          <button
-            className="btn btn-primary"
-            onClick={onContinue}
-            style={{ marginLeft: '10px' }}
-            disabled={hasUnmappedFields}
-            title={hasUnmappedFields ? '请先映射所有列' : '继续验证数据'}
-          >
-            继续验证数据
-          </button>
+      {/* 警告提示 */}
+      {!allRequiredFieldsMapped && (
+        <div style={{
+          marginTop: '20px',
+          padding: '12px',
+          backgroundColor: '#fef3c7',
+          border: '1px solid #fcd34d',
+          borderRadius: '6px',
+          color: '#92400e',
+          fontSize: '13px',
+        }}>
+          ⚠️ 还有 <strong>{requiredFields.length - mappedRequiredFields.length}</strong> 个必填字段未映射
         </div>
+      )}
+
+      {/* 按钮组 */}
+      <div style={{ marginTop: '20px', textAlign: 'right' }}>
+        {onPrevious && (
+          <button
+            className="btn btn-secondary"
+            onClick={onPrevious}
+            style={{ marginRight: '10px' }}
+          >
+            上一步
+          </button>
+        )}
+        <button className="btn btn-secondary" onClick={onReset}>
+          重置映射
+        </button>
+        <button
+          className="btn btn-primary"
+          onClick={onContinue}
+          style={{ marginLeft: '10px' }}
+          disabled={!allRequiredFieldsMapped}
+          title={!allRequiredFieldsMapped ? '请先映射所有必填字段' : '继续验证数据'}
+        >
+          继续验证数据
+        </button>
       </div>
     </div>
   )

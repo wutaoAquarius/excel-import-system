@@ -173,7 +173,7 @@ enum UserRole {
 // 订单表 - 运单数据
 model Order {
   id              String   @id @default(cuid())
-  external_code   String?  @unique @db.VarChar(255)
+  external_code   String?  @db.VarChar(255)
   sender_name     String   @db.VarChar(255)
   sender_phone    String   @db.VarChar(20)
   sender_address  String   @db.Text
@@ -189,6 +189,8 @@ model Order {
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
   
+  // 注意：external_code 不再使用 @unique 约束
+  // 原因：允许多个 NULL 值，在应用层做重复检查
   @@index([external_code])
   @@index([batch_number])
   @@index([created_at])

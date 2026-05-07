@@ -203,12 +203,16 @@ export function matchFieldName(
 
 /**
  * 匹配所有列名
+ * 返回格式：系统字段英文名 -> Excel列名
+ * （之前是 Excel列名 -> 系统字段英文名，现在反向以适应新的UI设计）
  */
 export function matchAllHeaders(
   headers: string[]
 ): Record<string, string> {
   const mapping: Record<string, string> = {}
+  const reverseMapping: Record<string, string> = {}
 
+  // 第一步：建立 Excel列名 -> 系统字段英文名 的映射
   for (const header of headers) {
     const matchedField = matchFieldName(header)
     if (matchedField) {
@@ -216,7 +220,15 @@ export function matchAllHeaders(
     }
   }
 
-  return mapping
+  // 第二步：反向映射为 系统字段英文名 -> Excel列名
+  for (const [header, field] of Object.entries(mapping)) {
+    // 只有在该系统字段还未被映射时才映射（避免多个Excel列映射同一字段）
+    if (!reverseMapping[field]) {
+      reverseMapping[field] = header
+    }
+  }
+
+  return reverseMapping
 }
 
 /**

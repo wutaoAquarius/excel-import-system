@@ -30,15 +30,16 @@ export function matchTemplate(headers: string[]): TemplateMatchResult {
 
 /**
  * 格式化映射规则（用于数据库存储）
+ * mapping 格式：系统字段英文名 -> Excel列名
  */
 export function formatMappingForStorage(
   mapping: Record<string, string>
 ): Record<string, string> {
   const formatted: Record<string, string> = {}
 
-  for (const [excelCol, systemField] of Object.entries(mapping)) {
-    if (systemField && systemField !== '不映射') {
-      formatted[excelCol] = systemField
+  for (const [systemField, excelCol] of Object.entries(mapping)) {
+    if (excelCol) {
+      formatted[systemField] = excelCol
     }
   }
 
@@ -47,6 +48,7 @@ export function formatMappingForStorage(
 
 /**
  * 合并映射规则（用于应用已保存的规则）
+ * 两个mapping的格式都是：系统字段英文名 -> Excel列名
  */
 export function mergeMapping(
   currentMapping: Record<string, string>,
@@ -54,9 +56,9 @@ export function mergeMapping(
 ): Record<string, string> {
   const merged = { ...currentMapping }
 
-  for (const [excelCol, systemField] of Object.entries(savedMapping)) {
-    if (!merged[excelCol]) {
-      merged[excelCol] = systemField
+  for (const [systemField, excelCol] of Object.entries(savedMapping)) {
+    if (excelCol && !merged[systemField]) {
+      merged[systemField] = excelCol
     }
   }
 

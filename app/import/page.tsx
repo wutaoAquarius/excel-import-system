@@ -52,27 +52,58 @@ export default function ImportPage() {
         fileName: file.name,
         headers: preview.headers,
         rows: preview.rows,
-        stepProgress: 50,
+        stepProgress: 30,
       }))
 
-      // 调用模板匹配 API
-      setState((prev) => ({ ...prev, stepProgress: 70 }))
-      const response = await fetch('/api/template-match', {
+      // 步骤1：调用模板匹配 API 获取自动识别的映射
+      setState((prev) => ({ ...prev, stepProgress: 50 }))
+      const matchResponse = await fetch('/api/template-match', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ headers: preview.headers }),
       })
 
-      if (!response.ok) throw new Error('模板匹配失败')
+      if (!matchResponse.ok) throw new Error('模板匹配失败')
 
-      const result = await response.json()
+      const matchResult = await matchResponse.json()
+      const fingerprint = matchResult.fingerprint || ''
+
+      // 步骤2：检查是否有之前保存的相同模板映射规则
+      let finalMapping = matchResult.mapping || {}
+      let confidence = matchResult.confidence || 0
+      
+      if (fingerprint) {
+        setState((prev) => ({ ...prev, stepProgress: 70 }))
+        try {
+          const findResponse = await fetch('/api/mapping', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'find',
+              fingerprint,
+            }),
+          })
+
+          if (findResponse.ok) {
+            const findResult = await findResponse.json()
+            if (findResult.data && findResult.data.mapping_rules) {
+              // 使用之前保存的映射规则
+              finalMapping = findResult.data.mapping_rules
+              confidence = 100 // 完全匹配之前保存的规则
+            }
+          }
+        } catch (err) {
+          // 查找失败不影响流程，继续使用自动识别的映射
+          console.log('查找保存的映射规则失败，继续使用自动识别')
+        }
+      }
 
       // 更新映射和指纹
       setState((prev) => ({
         ...prev,
-        mapping: result.mapping || {},
-        fingerprint: result.fingerprint || '',
-        confidence: result.confidence || 0,
+        mapping: finalMapping,
+        fingerprint,
+        confidence,
         currentStep: 2,
         stepProgress: 100,
       }))
@@ -86,6 +117,7 @@ export default function ImportPage() {
 
   // 步骤 2-3：映射编辑
   const handleMappingChange = (mapping: Record<string, string>) => {
+    // 新映射格式：系统字段 -> Excel列
     setState((prev) => ({ ...prev, mapping }))
   }
 
@@ -338,9 +370,22 @@ export default function ImportPage() {
                 <table>
                   <thead>
                     <tr>
-                      {state.headers.map((header) => (
-                        <th key={header}>{header}</th>
-                      ))}
+                      {state.headers.map((header) => {
+                        // 显示 Excel 列名以及自动识别的系统字段
+                        const systemField = Object.entries(state.mapping).find(
+                          ([_, col]) => col === header
+                        )?.[0]
+                        return (
+                          <th key={header}>
+                            <div>{header}</div>
+                            {systemField && (
+                              <div style={{ fontSize: '11px', color: '#059669', fontWeight: 'normal' }}>
+                                → {systemField}
+                              </div>
+                            )}
+                          </th>
+                        )
+                      })}
                     </tr>
                   </thead>
                   <tbody>
@@ -445,64 +490,84 @@ export default function ImportPage() {
 
             {state.errors.length > 0 && (
               <div className="card" style={{ marginTop: '20px' }}>
-                <h3>📋 修正后的数据预览（可在线编辑）</h3>
+                <h3>📋 校验后的数据预览</h3>
                 <p style={{ color: '#666', fontSize: '13px', marginBottom: '15px' }}>
-                  点击单元格可编辑数据，Tab 键移动到下一个单元格，Esc 取消编辑
+                  下表显示所有数据行。红色背景的单元格表示存在校验错误，请修正后重新上传或返回编辑映射
                 </p>
 
                 <div
                   className="table-wrapper"
-                  style={{ maxHeight: '400px', overflow: 'auto' }}
+                  style={{ maxHeight: '500px', overflow: 'auto' }}
                 >
                   <table>
                     <thead>
                       <tr>
                         {state.headers.map((header) => (
-                          <th key={header}>{state.mapping[header] || header}</th>
+                          // 表头显示映射后的系统字段名
+                          // 新的 mapping 格式：系统字段 -> Excel列
+                          // 需要反向查找该 Excel 列对应的系统字段
+                          <th key={header}>
+                            {Object.entries(state.mapping).find(([_, col]) => col === header)?.[0] || header}
+                          </th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {state.validRows.slice(0, 10).map((row, idx) => (
-                        <tr key={idx}>
-                          {state.headers.map((header) => {
-                            const mappedField = state.mapping[header]
-                            const hasError = state.errors.some(
-                              (e) =>
-                                e.rowIndex === idx + 1 &&
-                                e.field === mappedField
-                            )
-                            return (
-                              <td
-                                key={`${idx}-${header}`}
-                                className={hasError ? 'error-cell' : ''}
-                              >
-                                {row[mappedField] || row[header] || '-'}
-                              </td>
-                            )
-                          })}
-                        </tr>
-                      ))}
+                      {/* 显示所有行（包括有效和无效），以便用户看到有错误的数据 */}
+                      {state.rows.slice(0, 50).map((row, idx) => {
+                        // 检查该行是否有错误
+                        const rowHasErrors = state.errors.some(e => e.rowIndex === idx + 1)
+                        
+                        return (
+                          <tr key={idx} style={{
+                            backgroundColor: rowHasErrors ? '#fee2e2' : undefined,
+                          }}>
+                            {state.headers.map((header) => {
+                              // 该 Excel 列对应的系统字段
+                              const systemField = Object.entries(state.mapping).find(
+                                ([_, col]) => col === header
+                              )?.[0]
+                              
+                              // 检查该单元格是否有错误
+                              const hasError = state.errors.some(
+                                (e) =>
+                                  e.rowIndex === idx + 1 &&
+                                  e.field === systemField
+                              )
+                              
+                              return (
+                                <td
+                                  key={`${idx}-${header}`}
+                                  style={{
+                                    backgroundColor: hasError ? '#fca5a5' : undefined,
+                                    color: hasError ? '#7f1d1d' : undefined,
+                                  }}
+                                >
+                                  {row[header] || '-'}
+                                </td>
+                              )
+                            })}
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
+                </div>
+
+                <div style={{ marginTop: '15px', color: '#666', fontSize: '12px' }}>
+                  显示前 50 行 (共 {state.rows.length} 行，其中 {state.validRows.length} 行有效，{state.invalidRows.length} 行有错误)
                 </div>
 
                 <div style={{ marginTop: '20px', textAlign: 'right' }}>
                   <button
                     className="btn btn-secondary"
-                    onClick={handlePreviousStep}
-                    style={{ marginRight: '10px' }}
-                  >
-                    上一步
-                  </button>
-                  <button
-                    className="btn btn-secondary"
                     onClick={handleBackToMapping}
+                    style={{ marginRight: '10px' }}
                   >
                     返回编辑映射
                   </button>
                   <button
-                    className="btn btn-primary"
+                    className="btn btn-secondary"
                     onClick={handleExport}
                     style={{ marginLeft: '10px' }}
                     disabled={state.isLoading}

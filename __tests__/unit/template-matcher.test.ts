@@ -29,13 +29,13 @@ describe('template-matcher.ts - 模板匹配', () => {
       expect(/^[0-9a-f]+$/.test(result.fingerprint)).toBe(true)
     })
 
-    test('映射包含正确的字段匹配', () => {
+    test('映射包含正确的字段匹配（英文字段名）', () => {
       const headers = ['发件人姓名', '发件人电话', '重量']
       const result = matchTemplate(headers)
 
-      expect(result.mapping['发件人姓名']).toBe('发件人姓名')
-      expect(result.mapping['发件人电话']).toBe('发件人电话')
-      expect(result.mapping['重量']).toBe('重量')
+      expect(result.mapping['发件人姓名']).toBe('sender_name')
+      expect(result.mapping['发件人电话']).toBe('sender_phone')
+      expect(result.mapping['重量']).toBe('weight')
     })
 
     test('置信度是有效的百分比', () => {
@@ -69,14 +69,14 @@ describe('template-matcher.ts - 模板匹配', () => {
       expect(result.confidence).toBe(0)
     })
 
-    test('混合中英文别名匹配', () => {
+    test('混合中英文别名匹配返回英文字段名', () => {
       const headers = ['sender_name', '寄件人电话', 'receiver_address', '件数']
       const result = matchTemplate(headers)
 
-      expect(result.mapping['sender_name']).toBe('发件人姓名')
-      expect(result.mapping['寄件人电话']).toBe('发件人电话')
-      expect(result.mapping['receiver_address']).toBe('收件人地址')
-      expect(result.mapping['件数']).toBe('件数')
+      expect(result.mapping['sender_name']).toBe('sender_name')
+      expect(result.mapping['寄件人电话']).toBe('sender_phone')
+      expect(result.mapping['receiver_address']).toBe('receiver_address')
+      expect(result.mapping['件数']).toBe('quantity')
       expect(result.confidence).toBe(100)
     })
 

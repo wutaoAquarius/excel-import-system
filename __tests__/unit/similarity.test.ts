@@ -88,42 +88,43 @@ describe('similarity.ts - 字段匹配和相似度算法', () => {
 
   // ============ 单字段名称匹配测试 ============
   describe('matchFieldName - 单个字段名称匹配', () => {
-    test('精确匹配字段名称', () => {
-      expect(matchFieldName('发件人姓名')).toBe('发件人姓名')
-      expect(matchFieldName('收件人电话')).toBe('收件人电话')
-      expect(matchFieldName('重量')).toBe('重量')
-      expect(matchFieldName('温层')).toBe('温层')
+    test('精确匹配字段名称返回英文字段名', () => {
+      // 注意：matchFieldName 返回英文字段名以便于数据库操作
+      expect(matchFieldName('发件人姓名')).toBe('sender_name')
+      expect(matchFieldName('收件人电话')).toBe('receiver_phone')
+      expect(matchFieldName('重量')).toBe('weight')
+      expect(matchFieldName('温层')).toBe('temperature')
     })
 
-    test('精确匹配别名（中文）', () => {
-      expect(matchFieldName('寄件人')).toBe('发件人姓名')
-      expect(matchFieldName('发送人')).toBe('发件人姓名')
-      expect(matchFieldName('寄件人电话')).toBe('发件人电话')
+    test('精确匹配别名（中文）返回英文字段名', () => {
+      expect(matchFieldName('寄件人')).toBe('sender_name')
+      expect(matchFieldName('发送人')).toBe('sender_name')
+      expect(matchFieldName('寄件人电话')).toBe('sender_phone')
     })
 
-    test('精确匹配别名（英文）', () => {
-      expect(matchFieldName('sender')).toBe('发件人姓名')
-      expect(matchFieldName('sender_name')).toBe('发件人姓名')
-      expect(matchFieldName('receiver_phone')).toBe('收件人电话')
-      expect(matchFieldName('weight')).toBe('重量')
-      expect(matchFieldName('quantity')).toBe('件数')
-      expect(matchFieldName('temperature')).toBe('温层')
+    test('精确匹配别名（英文）返回英文字段名', () => {
+      expect(matchFieldName('sender')).toBe('sender_name')
+      expect(matchFieldName('sender_name')).toBe('sender_name')
+      expect(matchFieldName('receiver_phone')).toBe('receiver_phone')
+      expect(matchFieldName('weight')).toBe('weight')
+      expect(matchFieldName('quantity')).toBe('quantity')
+      expect(matchFieldName('temperature')).toBe('temperature')
     })
 
     test('相似度匹配超过阈值的字段', () => {
-      // senderName 与 sender_name 相似度高，应该匹配到发件人姓名
+      // senderName 与 sender_name 相似度高，应该匹配到 sender_name
       const result = matchFieldName('senderName')
-      expect(result).toBe('发件人姓名')
+      expect(result).toBe('sender_name')
     })
 
     test('大小写不敏感匹配', () => {
-      expect(matchFieldName('SENDER')).toBe('发件人姓名')
-      expect(matchFieldName('Receiver_Phone')).toBe('收件人电话')
+      expect(matchFieldName('SENDER')).toBe('sender_name')
+      expect(matchFieldName('Receiver_Phone')).toBe('receiver_phone')
     })
 
     test('前导/尾部空格自动清理', () => {
-      expect(matchFieldName('  sender_name  ')).toBe('发件人姓名')
-      expect(matchFieldName('\t重量\n')).toBe('重量')
+      expect(matchFieldName('  sender_name  ')).toBe('sender_name')
+      expect(matchFieldName('\t重量\n')).toBe('weight')
     })
 
     test('无匹配返回null', () => {
@@ -149,7 +150,7 @@ describe('similarity.ts - 字段匹配和相似度算法', () => {
 
   // ============ 全列表匹配测试 ============
   describe('matchAllHeaders - 全列表字段匹配', () => {
-    test('匹配所有已知字段', () => {
+    test('匹配所有已知字段返回英文字段名', () => {
       const headers = [
         '发件人姓名',
         '发件人电话',
@@ -159,28 +160,28 @@ describe('similarity.ts - 字段匹配和相似度算法', () => {
       ]
       const mapping = matchAllHeaders(headers)
 
-      expect(mapping['发件人姓名']).toBe('发件人姓名')
-      expect(mapping['发件人电话']).toBe('发件人电话')
-      expect(mapping['重量']).toBe('重量')
-      expect(mapping['温层']).toBe('温层')
+      expect(mapping['发件人姓名']).toBe('sender_name')
+      expect(mapping['发件人电话']).toBe('sender_phone')
+      expect(mapping['重量']).toBe('weight')
+      expect(mapping['温层']).toBe('temperature')
     })
 
-    test('混合匹配标准名和别名', () => {
+    test('混合匹配标准名和别名返回英文字段名', () => {
       const headers = ['发件人姓名', '寄件人电话', 'receiver_address', 'weight']
       const mapping = matchAllHeaders(headers)
 
-      expect(mapping['发件人姓名']).toBe('发件人姓名')
-      expect(mapping['寄件人电话']).toBe('发件人电话')
-      expect(mapping['receiver_address']).toBe('收件人地址')
-      expect(mapping['weight']).toBe('重量')
+      expect(mapping['发件人姓名']).toBe('sender_name')
+      expect(mapping['寄件人电话']).toBe('sender_phone')
+      expect(mapping['receiver_address']).toBe('receiver_address')
+      expect(mapping['weight']).toBe('weight')
     })
 
     test('未匹配的列不出现在映射中', () => {
       const headers = ['发件人姓名', '未知字段1', '未知字段2', 'receiver_phone']
       const mapping = matchAllHeaders(headers)
 
-      expect(mapping['发件人姓名']).toBe('发件人姓名')
-      expect(mapping['receiver_phone']).toBe('收件人电话')
+      expect(mapping['发件人姓名']).toBe('sender_name')
+      expect(mapping['receiver_phone']).toBe('receiver_phone')
       expect(Object.keys(mapping).length).toBe(2)
       expect(mapping['未知字段1']).toBeUndefined()
     })
@@ -196,13 +197,13 @@ describe('similarity.ts - 字段匹配和相似度算法', () => {
       expect(Object.keys(mapping).length).toBe(0)
     })
 
-    test('大小写混合匹配', () => {
+    test('大小写混合匹配返回英文字段名', () => {
       const headers = ['SENDER_NAME', 'Receiver_Phone', 'WEIGHT']
       const mapping = matchAllHeaders(headers)
 
-      expect(mapping['SENDER_NAME']).toBe('发件人姓名')
-      expect(mapping['Receiver_Phone']).toBe('收件人电话')
-      expect(mapping['WEIGHT']).toBe('重量')
+      expect(mapping['SENDER_NAME']).toBe('sender_name')
+      expect(mapping['Receiver_Phone']).toBe('receiver_phone')
+      expect(mapping['WEIGHT']).toBe('weight')
     })
   })
 
