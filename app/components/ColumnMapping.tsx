@@ -11,7 +11,8 @@ interface ColumnMappingProps {
   onPrevious?: () => void
 }
 
-const SYSTEM_FIELDS = [
+// 系统字段的中文显示名称
+const SYSTEM_FIELDS_CN = [
   '发件人姓名',
   '发件人电话',
   '发件人地址',
@@ -26,6 +27,22 @@ const SYSTEM_FIELDS = [
   '不映射',
 ]
 
+// 中文到英文的映射（用于存储和验证）
+const FIELD_NAME_MAP: Record<string, string> = {
+  '发件人姓名': 'sender_name',
+  '发件人电话': 'sender_phone',
+  '发件人地址': 'sender_address',
+  '收件人姓名': 'receiver_name',
+  '收件人电话': 'receiver_phone',
+  '收件人地址': 'receiver_address',
+  '重量': 'weight',
+  '件数': 'quantity',
+  '温层': 'temperature',
+  '外部编码': 'external_code',
+  '备注': 'remark',
+  '不映射': '不映射',
+}
+
 export default function ColumnMapping({
   headers,
   mapping,
@@ -36,11 +53,19 @@ export default function ColumnMapping({
   onReset,
   onPrevious,
 }: ColumnMappingProps) {
-  const handleMappingChange = (header: string, field: string) => {
+  const handleMappingChange = (header: string, cnField: string) => {
     const newMapping = { ...mapping }
-    newMapping[header] = field
+    // 转换中文字段名到英文进行存储
+    const englishField = FIELD_NAME_MAP[cnField] || cnField
+    newMapping[header] = englishField
     onMappingChange(newMapping)
   }
+  
+  // 创建英文到中文的反向映射（用于显示）
+  const englishToCN = Object.entries(FIELD_NAME_MAP).reduce(
+    (acc, [cn, en]) => ({ ...acc, [en]: cn }),
+    {} as Record<string, string>
+  )
 
   return (
     <div className="card">
@@ -92,32 +117,39 @@ export default function ColumnMapping({
           gap: '15px',
         }}
       >
-        {headers.map((header) => (
-          <div key={header} className="mapping-item">
-            <label>
-              <strong>{mapping[header] || '未映射'}</strong>
-            </label>
-            <div className="original-name">原始列名：{header}</div>
-            <select
-              value={mapping[header] || ''}
-              onChange={(e) => handleMappingChange(header, e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px',
-                border: '1px solid var(--border-color)',
-                borderRadius: '6px',
-                fontSize: '13px',
-              }}
-            >
-              <option value="">-- 选择映射字段 --</option>
-              {SYSTEM_FIELDS.map((field) => (
-                <option key={field} value={field}>
-                  {field}
-                </option>
-              ))}
-            </select>
-          </div>
-        ))}
+        {headers.map((header) => {
+          // 从存储的英文映射值转换为中文显示
+          const englishValue = mapping[header] || ''
+          const cnValue = englishToCN[englishValue] || ''
+          const displayField = cnValue || '未映射'
+          
+          return (
+            <div key={header} className="mapping-item">
+              <label>
+                <strong>{displayField}</strong>
+              </label>
+              <div className="original-name">原始列名：{header}</div>
+              <select
+                value={cnValue}
+                onChange={(e) => handleMappingChange(header, e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                }}
+              >
+                <option value="">-- 选择映射字段 --</option>
+                {SYSTEM_FIELDS_CN.map((field) => (
+                  <option key={field} value={field}>
+                    {field}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )
+        })}
       </div>
 
       {/* 按钮组 */}

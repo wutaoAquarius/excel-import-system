@@ -1,5 +1,22 @@
 /**
- * 字段别名库
+ * 中文到英文的字段名映射
+ */
+const FIELD_CN_TO_EN: Record<string, string> = {
+  发件人姓名: 'sender_name',
+  发件人电话: 'sender_phone',
+  发件人地址: 'sender_address',
+  收件人姓名: 'receiver_name',
+  收件人电话: 'receiver_phone',
+  收件人地址: 'receiver_address',
+  重量: 'weight',
+  件数: 'quantity',
+  温层: 'temperature',
+  外部编码: 'external_code',
+  备注: 'remark',
+}
+
+/**
+ * 字段别名库（用中文键，便于识别）
  */
 export const ALIAS_MAP: Record<string, string[]> = {
   发件人姓名: [
@@ -156,10 +173,11 @@ export function matchFieldName(
   const inputLower = inputName.toLowerCase().trim()
 
   // 1. 先检查别名库是否有精确匹配
-  for (const [systemField, aliases] of Object.entries(ALIAS_MAP)) {
+  for (const [systemFieldCN, aliases] of Object.entries(ALIAS_MAP)) {
     for (const alias of aliases) {
       if (alias.toLowerCase() === inputLower) {
-        return systemField
+        // 返回英文字段名
+        return FIELD_CN_TO_EN[systemFieldCN] || systemFieldCN
       }
     }
   }
@@ -167,19 +185,20 @@ export function matchFieldName(
   // 2. 如果没有精确匹配，则使用相似度匹配
   let bestMatch: { field: string; similarity: number } | null = null
 
-  for (const [systemField, aliases] of Object.entries(ALIAS_MAP)) {
+  for (const [systemFieldCN, aliases] of Object.entries(ALIAS_MAP)) {
     for (const alias of aliases) {
       const similarity = calculateSimilarity(inputLower, alias.toLowerCase())
       if (
         similarity >= threshold &&
         (!bestMatch || similarity > bestMatch.similarity)
       ) {
-        bestMatch = { field: systemField, similarity }
+        bestMatch = { field: systemFieldCN, similarity }
       }
     }
   }
 
-  return bestMatch ? bestMatch.field : null
+  // 返回英文字段名
+  return bestMatch ? FIELD_CN_TO_EN[bestMatch.field] || bestMatch.field : null
 }
 
 /**
