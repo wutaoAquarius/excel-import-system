@@ -3,7 +3,7 @@
 import { useRef } from 'react'
 
 interface FileUploadProps {
-  onFileSelect: (file: File, preview: { headers: string[]; rows: any[] }) => Promise<void>
+  onFileSelect: (file: File, preview: { headers: string[]; rows: any[]; hasMergedFirstRow?: boolean; dataStartRow?: number }) => Promise<void>
   onLoading?: (isLoading: boolean) => void
   disabled?: boolean
 }
@@ -56,10 +56,12 @@ export default function FileUpload({
 
       const data = await response.json()
 
-      // 调用回调函数
+      // 调用回调函数，传递合并单元格信息
       await onFileSelect(file, {
         headers: data.headers || [],
         rows: data.rows || [],
+        hasMergedFirstRow: data.hasMergedFirstRow || false,
+        dataStartRow: data.dataStartRow || 1,
       })
     } catch (error) {
       console.error('文件处理失败:', error)
@@ -140,6 +142,8 @@ export default function FileUpload({
               await onFileSelect(new File([], 'sample.xlsx'), {
                 headers: data.headers || [],
                 rows: data.rows || [],
+                hasMergedFirstRow: false,
+                dataStartRow: 1,
               })
             } catch (error) {
               alert('加载示例数据失败')

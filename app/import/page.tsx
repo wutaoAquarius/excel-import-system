@@ -20,6 +20,8 @@ interface ImportState {
   invalidRows: any[]
   isLoading: boolean
   stepProgress: number // 当前步骤进度 0-100
+  hasMergedFirstRow?: boolean // 第一行是否有合并单元格
+  dataStartRow?: number // 实际数据起始行号（1-indexed）
 }
 
 export default function ImportPage() {
@@ -36,15 +38,22 @@ export default function ImportPage() {
     invalidRows: [],
     isLoading: false,
     stepProgress: 0,
+    hasMergedFirstRow: false,
+    dataStartRow: 1,
   })
 
   // 步骤 1：文件上传
   const handleFileSelect = async (
     file: File,
-    preview: { headers: string[]; rows: any[] }
+    preview: { headers: string[]; rows: any[]; hasMergedFirstRow?: boolean; dataStartRow?: number }
   ) => {
     try {
       setState((prev) => ({ ...prev, isLoading: true, stepProgress: 20 }))
+
+      // 如果第一行有合并单元格，显示提示信息
+      if (preview.hasMergedFirstRow) {
+        alert('✓ 检测到第一行存在合并单元格，已自动跳过第一行，使用第二行作为表头行')
+      }
 
       // 保存文件信息
       setState((prev) => ({
@@ -52,6 +61,8 @@ export default function ImportPage() {
         fileName: file.name,
         headers: preview.headers,
         rows: preview.rows,
+        hasMergedFirstRow: preview.hasMergedFirstRow || false,
+        dataStartRow: preview.dataStartRow || 1,
         stepProgress: 30,
       }))
 
@@ -355,12 +366,33 @@ export default function ImportPage() {
         {state.currentStep === 2 && state.headers.length > 0 && (
           <div className="card">
             <h3>📊 原始数据预览（前 5 行）</h3>
+            
+            {/* 合并单元格提示 */}
+            {state.hasMergedFirstRow && (
+              <div style={{
+                marginTop: '15px',
+                padding: '12px',
+                backgroundColor: '#dbeafe',
+                border: '1px solid #0284c7',
+                borderRadius: '6px',
+                color: '#0c4a6e',
+                fontSize: '13px',
+                marginBottom: '15px',
+              }}>
+                <strong>ℹ️ 提示：</strong> 检测到原始文件第一行存在合并单元格，已自动跳过并使用第二行作为表头行。
+                <br />
+                <span style={{ fontSize: '12px', marginTop: '4px', display: 'inline-block' }}>
+                  实际数据行号：从第 {state.dataStartRow || 1} 行开始
+                </span>
+              </div>
+            )}
+
             <div style={{ marginTop: '15px' }}>
               <p style={{ color: '#666', fontSize: '13px', marginBottom: '10px' }}>
                 <strong>文件名：</strong> {state.fileName}
               </p>
               <p style={{ color: '#666', fontSize: '13px', marginBottom: '10px' }}>
-                <strong>行数：</strong> {state.rows.length}
+                <strong>行数：</strong> {state.rows.length}{state.hasMergedFirstRow ? ' (已跳过合并行)' : ''}
               </p>
               <p style={{ color: '#666', fontSize: '13px', marginBottom: '15px' }}>
                 <strong>列数：</strong> {state.headers.length}
