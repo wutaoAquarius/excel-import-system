@@ -1,0 +1,18 @@
+{
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "env": [
+    {
+      "key": "POSTGRES_PRISMA_URL",
+      "description": "Vercel Postgres connection string",
+      "value": ""
+    },
+    {
+      "key": "POSTGRES_URL_NON_POOLING",
+      "description": "Vercel Postgres non-pooling connection string",
+      "value": ""
+    }
+  ]
+}
