@@ -58,7 +58,7 @@ export function validateRow(
   mapping: Record<string, string>,
   _allRows?: Record<string, any>[],
   mappedRows?: Record<string, any>[],
-  isAlreadyMapped?: boolean
+  _isAlreadyMapped?: boolean
 ): ValidationError[] {
   const errors: ValidationError[] = []
   const mappedRow: Record<string, any> = {}
