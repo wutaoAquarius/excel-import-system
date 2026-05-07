@@ -5,9 +5,6 @@ const nextConfig = {
   typescript: {
     tsconfigPath: './tsconfig.json',
   },
-  experimental: {
-    serverActions: true,
-  },
 }
 
 module.exports = nextConfig
